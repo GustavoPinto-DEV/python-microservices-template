@@ -1,0 +1,99 @@
+{#
+  EJEMPLO DE USO: Página de Detalle
+
+  Este template demuestra cómo usar detail_base.html.jinja para crear
+  una página de detalle con campos readonly.
+#}
+
+{% extends "Shared/detail_base.html.jinja" %}
+{% from 'Shared/macros.html.jinja' import detail_field, detail_textarea %}
+
+{% block page_title %}Detalle Bitácora{% endblock %}
+
+{% block detail_content %}
+<div class="col-12 col-md-6">
+  {{ detail_field("id", "ID") }}
+</div>
+<div class="col-12 col-md-6">
+  {{ detail_field("tipo", "Tipo") }}
+</div>
+<div class="col-12 col-md-6">
+  {{ detail_field("fecha", "Fecha") }}
+</div>
+<div class="col-12 col-md-6">
+  {{ detail_field("usuario", "Usuario") }}
+</div>
+<div class="col-12">
+  {{ detail_textarea("descripcion", "Descripción", rows=3) }}
+</div>
+<div class="col-12">
+  {{ detail_textarea("detalle", "Detalle Completo", rows=5, prepend_height="100%") }}
+</div>
+{% endblock %}
+
+{% block detail_js %}
+<script>
+  // Obtener el ID de sessionStorage o URL
+  const bitacoraId = sessionStorage.getItem("bitacoraDetalleId");
+
+  $(document).ready(function () {
+    if (bitacoraId) {
+      cargarDetalle(bitacoraId);
+    } else {
+      MostrarError("Error", "No se encontró el ID de la bitácora.");
+      setTimeout(() => {
+        window.history.back();
+      }, 2000);
+    }
+
+    // Botón volver
+    $("#volver").click(function () {
+      sessionStorage.removeItem("bitacoraDetalleId");
+      window.history.back();
+    });
+  });
+
+  /**
+   * Carga los datos del detalle
+   */
+  function cargarDetalle(id) {
+    $.ajax({
+      url: `/api/bitacora/detalle/${id}`,
+      type: "GET",
+      success: function (response) {
+        const data = response.data;
+
+        // Llenar campos
+        $("#id").val(data.id);
+        $("#tipo").val(data.tipo);
+        $("#fecha").val(FormatearFechaHora(data.fecha));
+        $("#usuario").val(data.usuario);
+        $("#descripcion").val(data.descripcion);
+        $("#detalle").val(data.detalle);
+
+        // Auto-resize textareas
+        autoResizeTextarea("#descripcion");
+        autoResizeTextarea("#detalle");
+      },
+      error: function (jqXHR) {
+        const errorMessage = ExtraerMensajeError(jqXHR);
+        MostrarError("Error al cargar detalle", errorMessage);
+        setTimeout(() => {
+          window.history.back();
+        }, 2000);
+      }
+    });
+  }
+
+  /**
+   * Auto-resize textarea basado en contenido
+   */
+  function autoResizeTextarea(selector) {
+    const element = $(selector)[0];
+    if (element) {
+      element.style.height = 'auto';
+      element.style.height = Math.min(element.scrollHeight, 200) + 'px';
+    }
+  }
+</script>
+{% endblock %}

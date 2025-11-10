@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ title }} - My FastAPI App</title>
+
+  {# Base CSS - Always loaded #}
+  <link rel="stylesheet" href="/static/lib/bootstrap/dist/css/bootstrap.min.css" />
+  <link rel="shortcut icon" href="/static/favicon.ico" />
+  <link href="/static/Sweetalert2/sweetalert2.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/site.css" />
+  <link rel="stylesheet" href="/static/css/loader.css" />
+  <link rel="stylesheet" href="/static/lib/FontAwesome/css/all.min.css" />
+
+  {# Additional CSS from child templates #}
+  {% block styles %}{% endblock %}
+
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-lg navbar-light" style="padding: 1rem">
+    <a href="/home"><img src="/static/img/logo.png" alt="Logo" style="max-width: 250px" /></a>
+    <div class="container-fluid">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
+        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          {% if user_profile == "Admin" %}
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" id="navbarDropdown" role="button" data-bs-toggle="dropdown"
+              aria-expanded="false">
+              <strong>Administration</strong>
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+              <li>
+                <a class="dropdown-item" href="/maintenance/services"><strong>Services</strong></a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="/maintenance/users"><strong>Users</strong></a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="/maintenance/items"><strong>Items</strong></a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="/maintenance/settings"><strong>Settings</strong></a>
+              </li>
+            </ul>
+          </li>
+          {% endif %}
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" id="navbarDropdown" role="button" data-bs-toggle="dropdown"
+              aria-expanded="false">
+              <strong>Audit Logs</strong>
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+              <li>
+                <a class="dropdown-item" href="/audit-log/api"><strong>API Audit Log</strong></a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="/audit-log/processes"><strong>Process Audit Log</strong></a>
+              </li>
+            </ul>
+          </li>
+        </ul>
+        <ul class="navbar-nav float-right">
+          <li class="nav-item dropdown">
+            <a class="large nav-link dropdown-toggle" id="navbarDropdown" role="button" data-bs-toggle="dropdown"
+              aria-expanded="false">
+              <i class="fa fa-user-circle"></i> {{ user_name }}
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+              <li><a class="dropdown-item" href="/logout">Logout</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container body-content">
+    <main role="main" class="pb-3">{% block content %} {% endblock %}</main>
+  </div>
+
+  <!-- Global Loader Component -->
+  {% include 'Shared/loader.html.jinja' %}
+
+  <!-- Load core scripts first -->
+  <script src="/static/Scripts/SweetAlert2/sweetalert2.js"></script>
+  <script src="/static/lib/jquery/dist/jquery.min.js"></script>
+  <script src="/static/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Load loader system before showing it -->
+  <script src="/static/js/loader.js"></script>
+
+  <!-- Show loader for direct page loads (not needed for link navigation) -->
+  <script>
+    // Only show loader if it's not already active (handles direct page loads)
+    // For link navigation, the loader is already shown by the click handler
+    if (typeof Loader !== 'undefined') {
+      var loaderElement = document.getElementById('global-loader');
+      // Only show if loader is not already active
+      if (!loaderElement || !loaderElement.classList.contains('active')) {
+        Loader.show('Loading page...');
+      }
+    }
+  </script>
+
+  <script src="/static/js/site.js"></script>
+  {% block scripts %} {% endblock %}
+</body>
+
+</html>

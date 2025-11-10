@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Web Template - Inicio de Sesión</title>
+
+  {# Favicon #}
+  <link rel="shortcut icon" href="/static/favicon.ico" />
+
+  {# CSS Libraries #}
+  <link href="/static/Sweetalert2/sweetalert2.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/lib/bootstrap/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="/static/css/site.css" />
+  <link rel="stylesheet" href="/static/css/loader.css" />
+  <link href="/static/lib/fontawesome/css/all.min.css" rel="stylesheet" />
+  <link href="/static/css/Login.css" rel="stylesheet" />
+</head>
+
+<body>
+  <div class="container body-content login">
+    <div class="row">
+      <div class="col-lg-4 col-md-8 col-sm-10 offset-lg-4 offset-md-2 offse-sm-1">
+        <div class="card">
+          <div class="card-body">
+            {# Logo #}
+            <div style="width: 100%; text-align: center">
+              <img src="/static/img/logo.png" style="max-width: 100%" alt="Logo" />
+            </div>
+            {# Título #}
+            <div style="width: 100%; text-align: center">
+              <h2 class="h3 text-center my-4" style="color: #454545; font-weight: 700 !important">
+                Administración Web Template
+              </h2>
+            </div>
+            {# Formulario de Login #}
+            <form style="width: 100%; margin: auto" action="{{ url_for('login_user') }}" method="post" id="loginform"
+              class="auto-loader" data-loader-text="Iniciando sesión...">
+              <div class="form-group">
+                <label for="usuario">Usuario</label>
+                <input type="text" id="usuario" name="usuario" class="form-control w-100"
+                  value="{{ usuario if usuario is not none else '' }}" />
+              </div>
+              <div class="form-group">
+                <label for="contrasena">Contraseña</label>
+                <input type="password" id="contrasena" name="contrasena" class="form-control w-100" />
+              </div>
+              <button type="submit" class="btn btn-primario form-control">
+                Entrar
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Global Loader Component #}
+  {% include 'Shared/loader.html.jinja' %}
+
+  {# JavaScript Libraries #}
+  <script src="/static/lib/jquery/dist/jquery.min.js"></script>
+  <script src="/static/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/static/Scripts/SweetAlert2/sweetalert2.js"></script>
+  <script src="/static/js/loader.js"></script>
+
+  {# Login Error Message Handler #}
+  <script>
+    $(document).ready(function () {
+      var mostrarMensaje = {{ submit | tojson }};
+      var mensajeTexto = {{ mensaje | tojson }};
+      if (mostrarMensaje) {
+        Swal.fire({
+          icon: "warning",
+          title: "Atención",
+          text: mensajeTexto,
+        });
+      }
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,197 @@
+{#
+  EJEMPLO DE USO: Bitácora con Filtros y Server-Side Processing
+
+  Este template demuestra cómo usar bitacora_base.html.jinja para crear
+  una página de bitácora con filtros personalizados.
+#}
+
+{% extends "Shared/bitacora_base.html.jinja" %}
+
+{% block page_title %}Ejemplo Bitácora{% endblock %}
+
+{# Filtros personalizados #}
+{% block filtros %}
+<div class="row">
+  <div class="col-12 col-md-3 mb-3 mb-md-0">
+    <div class="input-group mb-3">
+      <div class="input-group-prepend">
+        <label class="input-group-text" for="tipo">Tipo</label>
+      </div>
+      <select id="tipo" class="form-control form-select">
+        <option value="">Seleccione</option>
+        {% for item in tipos_data %}
+        <option value="{{ item.id }}">{{ item.nombre }}</option>
+        {% endfor %}
+      </select>
+      <div id="tipo_error" class="invalid-feedback">
+        Por favor selecciona un Tipo.
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-3 mb-3 mb-md-0">
+    <div class="input-group mb-3">
+      <div class="input-group-prepend">
+        <label class="input-group-text" for="fechaInput">Fecha</label>
+      </div>
+      <input type="date" id="fechaInput" name="fecha" class="form-control" />
+      <div id="fechaInput_error" class="invalid-feedback">
+        Por favor selecciona una Fecha.
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-3 row pe-0">
+    <div class="col-md-6 pe-0">
+      <button class="btn btn-primario w-100" id="buscar">Buscar</button>
+    </div>
+    <div class="col-md-6 pe-0">
+      <button class="btn btn-rojo w-100" id="descargar">Descargar</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{# JavaScript para la bitácora #}
+{% block datatable_js %}
+<script>
+  const urlObtenerDatos = "/api/bitacora/datos";
+
+  $(document).ready(function () {
+    cargarTabla();
+
+    // Evento buscar
+    $("#buscar").click(function () {
+      if (ValidarBuscar()) {
+        cargarTabla(
+          document.getElementById("tipo").value,
+          document.getElementById("fechaInput").value
+        );
+      }
+    });
+
+    // Evento descargar
+    $("#descargar").click(function () {
+      if (ValidarBuscar()) {
+        MostrarModalDescargar(
+          document.getElementById("tipo").value,
+          document.getElementById("fechaInput").value
+        );
+      }
+    });
+  });
+
+  /**
+   * Valida los filtros antes de buscar
+   */
+  async function ValidarBuscar() {
+    const fieldsToValidate = [
+      { id: 'tipo', mensaje: 'Por favor selecciona un Tipo.' },
+      { id: 'fechaInput', mensaje: 'Por favor selecciona una Fecha.' }
+    ];
+    LimpiarErroresCampos(fieldsToValidate.map(f => f.id));
+
+    let allFieldsValid = true;
+
+    for (const field of fieldsToValidate) {
+      const element = document.getElementById(field.id);
+      const errorElement = document.getElementById(`${field.id}_error`);
+      const isValid = await ValidarCampoGenerico(element, errorElement, {
+        mensajeError: field.mensaje
+      });
+      if (!isValid) {
+        allFieldsValid = false;
+      }
+    }
+
+    return allFieldsValid;
+  }
+
+  /**
+   * Carga la tabla con los filtros aplicados
+   */
+  function cargarTabla(tipo = null, fecha = null) {
+    const hasParameters = tipo !== null && fecha !== null;
+
+    ReiniciarDataTable("#tabla");
+
+    const dataTableOptions = ObtenerConfigDataTable({
+      columns: [
+        { data: "id", title: "ID", name: "id", className: "text-center" },
+        { data: "tipo", title: "Tipo", name: "tipo" },
+        { data: "descripcion", title: "Descripción", name: "descripcion", orderable: false },
+        {
+          data: "fecha",
+          title: "Fecha",
+          className: "text-center",
+          name: "fecha",
+          render: (data) => FormatearFechaHora(data)
+        },
+        {
+          data: "id",
+          title: "Acciones",
+          className: "text-center",
+          name: "acciones",
+          orderable: false,
+          searchable: false,
+          render: (data) => RenderizarBotonVer('verDetalle', data)
+        }
+      ]
+    });
+
+    if (hasParameters) {
+      // Habilitar server-side processing
+      dataTableOptions.processing = true;
+      dataTableOptions.serverSide = true;
+      dataTableOptions.ajax = {
+        url: urlObtenerDatos,
+        type: "POST",
+        contentType: "application/json",
+        data: function (d) {
+          return JSON.stringify({
+            tipo: parseInt(tipo),
+            fecha: FechaAIso(fecha),
+            // Parámetros de DataTables para server-side
+            draw: d.draw,
+            start: d.start,
+            length: d.length,
+            search: d.search,
+            order: d.order,
+            columns: d.columns
+          });
+        },
+        error: function (jqXHR, textStatus, errorThrown) {
+          console.error('Error al cargar datos:', textStatus, errorThrown);
+          MostrarError('Error al cargar datos', 'Ocurrió un error al obtener la información.');
+        }
+      };
+      // Orden por defecto: fecha descendente
+      dataTableOptions.order = [[3, 'desc']];
+    } else {
+      dataTableOptions.data = [];
+    }
+
+    $("#tabla").DataTable(dataTableOptions);
+  }
+
+  /**
+   * Muestra modal para descargar datos
+   */
+  function MostrarModalDescargar(tipo, fecha) {
+    MostrarSelectorFormatoDescarga().then((result) => {
+      if (result.isConfirmed) {
+        const data = {
+          tipo: parseInt(tipo),
+          fecha: FechaAIso(fecha)
+        };
+        DescargarArchivoAjax(urlObtenerDatos, data, result.value, 'Bitacora');
+      }
+    });
+  }
+
+  /**
+   * Navega al detalle de un registro
+   */
+  function verDetalle(id) {
+    window.location.href = `/bitacora/detalle/${id}`;
+  }
+</script>
+{% endblock %}

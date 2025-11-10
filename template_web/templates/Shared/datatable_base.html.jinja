@@ -1,0 +1,64 @@
+{#
+  Base template for pages with DataTables
+
+  This template eliminates repetition for CRUD/mantenedor pages.
+
+  Usage example:
+    {% extends "Shared/datatable_base.html.jinja" %}
+
+    {% block page_title %}Usuarios{% endblock %}
+    {% block create_button_text %}Crear Usuario{% endblock %}
+    {% block create_button_id %}crearUsuario{% endblock %}
+
+    {% block datatable_js %}
+    <script>
+      const data = {{ data | tojson }};
+      // Your DataTable initialization
+    </script>
+    {% endblock %}
+#}
+
+{% extends "Shared/layout.html.jinja" %}
+{% from 'Shared/macros.html.jinja' import datatable_styles, datatable_scripts, page_header, datatable_container %}
+
+{# Include DataTables CSS automatically #}
+{% block styles %}
+{{ datatable_styles() }}
+{% endblock %}
+
+{# Page content #}
+{% block content %}
+{{ page_header(
+    title=self.page_title(),
+    create_button_text=self.create_button_text() if self.create_button_text() else None,
+    create_button_id=self.create_button_id() if self.create_button_id() else None
+) }}
+
+{# Allow customization before table #}
+{% block before_table %}{% endblock %}
+
+{# DataTable container #}
+{{ datatable_container(table_id=self.table_id() if self.table_id() else "tabla") }}
+
+{# Allow customization after table #}
+{% block after_table %}{% endblock %}
+{% endblock %}
+
+{# Scripts block #}
+{% block scripts %}
+{{ datatable_scripts() }}
+
+{# Custom DataTable initialization #}
+{% block datatable_js %}
+{# Override this block in child templates with your DataTable code #}
+{% endblock %}
+{% endblock %}
+
+{# ========================================
+   Blocks to override in child templates
+   ======================================== #}
+
+{% block page_title %}DataTable Page{% endblock %}
+{% block create_button_text %}{% endblock %}
+{% block create_button_id %}btnCrear{% endblock %}
+{% block table_id %}tabla{% endblock %}

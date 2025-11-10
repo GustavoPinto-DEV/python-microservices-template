@@ -1,0 +1,37 @@
+# Development Dependencies
+# Instalar con: pip install -r requirements-dev.txt
+
+# Include production dependencies
+-r requirements.txt
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+httpx==0.25.2  # Para TestClient async
+aiosqlite==0.19.0  # Para tests con SQLite async
+
+# Code Quality
+black==23.12.1  # Code formatting
+ruff==0.1.8  # Fast linter
+mypy==1.7.1  # Type checking
+isort==5.13.2  # Import sorting
+
+# Pre-commit
+pre-commit==3.6.0
+
+# Documentation
+mkdocs==1.5.3
+mkdocs-material==9.5.3
+
+# Debugging
+ipdb==0.13.13
+ipython==8.18.1
+
+# Load testing
+locust==2.20.0
+
+# Security
+bandit==1.7.6
+safety==2.3.5

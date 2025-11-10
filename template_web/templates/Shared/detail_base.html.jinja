@@ -1,0 +1,26 @@
+{% extends "Shared/layout.html.jinja" %}
+{% from 'Shared/macros.html.jinja' import detail_header %}
+
+{# ========================================
+Page Title Block
+======================================== #}
+{% block page_title %}Detalle{% endblock %}
+
+{# Page content #}
+{% block content %}
+{{ detail_header(self.page_title()) }}
+
+<div class="row">
+  {% block detail_content %}
+  {# Override this block in child templates with your detail fields #}
+  {% endblock %}
+</div>
+{% endblock %}
+
+{# Scripts block #}
+{% block scripts %}
+{# Custom detail page JavaScript #}
+{% block detail_js %}
+{# Override this block in child templates with your JavaScript #}
+{% endblock %}
+{% endblock %}

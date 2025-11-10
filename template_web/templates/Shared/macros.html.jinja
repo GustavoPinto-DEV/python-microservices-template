@@ -1,0 +1,235 @@
+{#
+Reusable Jinja2 Macros for Web Applications
+
+Usage in templates:
+{% from 'Shared/macros.html.jinja' import datatable_styles, page_header %}
+#}
+
+
+{# ========================================
+DataTables: CSS and JS Imports
+======================================== #}
+
+{% macro datatable_styles() -%}
+<link href="/static/lib/DataTables/datatables.min.css" rel="stylesheet" />
+<link href="/static/lib/DataTables/Buttons-2.2.3/css/buttons.bootstrap.min.css" rel="stylesheet" />
+<link href="/static/lib/DataTables/Buttons-2.2.3/css/buttons.dataTables.css" rel="stylesheet" />
+{%- endmacro %}
+
+
+{% macro datatable_scripts() -%}
+<script src="/static/lib/DataTables/datatables.js"></script>
+<script src="/static/lib/DataTables/Buttons-2.2.3/js/dataTables.buttons.js"></script>
+<script src="/static/lib/DataTables/Buttons-2.2.3/js/buttons.html5.js"></script>
+<script src="/static/lib/DataTables/Buttons-2.2.3/js/buttons.dataTables.js"></script>
+<script src="/static/lib/DataTables/Buttons-2.2.3/js/buttons.bootstrap.js"></script>
+{# Generic helper for DataTables server-side processing #}
+<script src="/static/js/datatable-serverside.js"></script>
+{%- endmacro %}
+
+
+{# ========================================
+Page Layout Components
+======================================== #}
+
+{% macro page_header(title, create_button_text=None, create_button_id=None) -%}
+<div class="row">
+  <div class="col-8">
+    <h6>{{ title }}</h6>
+  </div>
+  {% if create_button_text %}
+  <div class="col-4 d-flex justify-content-end">
+    <button class="btn btn-primario" id="{{ create_button_id or 'btnCrear' }}">
+      <i class="fa fa-plus"></i>
+      {{ create_button_text }}
+    </button>
+  </div>
+  {% endif %}
+</div>
+<hr />
+<br />
+{%- endmacro %}
+
+
+{% macro datatable_container(table_id="tabla") -%}
+<table id="{{ table_id }}" width="100%" class="table nowrap">
+  <thead>
+    <tr></tr>
+  </thead>
+</table>
+<br />
+{%- endmacro %}
+
+
+{# ========================================
+Form Components (for SweetAlert modals)
+======================================== #}
+
+{# Generate a text input with validation #}
+{% macro form_input(field_id, label, value="", placeholder="", type="text", readonly=False) -%}
+<div class="col-12 mb-3">
+  <div class="input-group">
+    <div class="input-group-prepend">
+      <label class="input-group-text" for="{{ field_id }}">{{ label }}</label>
+    </div>
+    <input type="{{ type }}" id="{{ field_id }}" class="form-control" value="{{ value }}"
+      placeholder="{{ placeholder or label }}" {% if readonly %}readonly{% endif %}>
+    <div id="{{ field_id }}_error" class="invalid-feedback"></div>
+  </div>
+</div>
+{%- endmacro %}
+
+
+{# Generate a select dropdown #}
+{% macro form_select(field_id, label, options, selected_value=None, default_text="Select") -%}
+<div class="col-12 mb-3">
+  <div class="input-group">
+    <div class="input-group-prepend">
+      <label class="input-group-text" for="{{ field_id }}">{{ label }}</label>
+    </div>
+    <select id="{{ field_id }}" class="form-control form-select">
+      <option value="0" {% if selected_value is none or selected_value==0 %}selected{% endif %}>
+        {{ default_text }}
+      </option>
+      {% for option in options %}
+      <option value="{{ option.value }}" {% if selected_value==option.value %}selected{% endif %}>
+        {{ option.label }}
+      </option>
+      {% endfor %}
+    </select>
+    <div id="{{ field_id }}_error" class="invalid-feedback"></div>
+  </div>
+</div>
+{%- endmacro %}
+
+
+{# Generate a toggle switch #}
+{% macro form_toggle(field_id, label, checked=False) -%}
+<div class="col mb-3 d-flex">
+  <div class="input-group-prepend">
+    <label class="input-group-text" for="{{ field_id }}">{{ label }}</label>
+  </div>
+  <div class="form-control d-flex align-items-center justify-content-center" style="margin-left: -2px;">
+    <label class="switch">
+      <input type="checkbox" id="{{ field_id }}" {% if checked %}checked{% endif %}>
+      <span class="slider round"></span>
+    </label>
+  </div>
+</div>
+{%- endmacro %}
+
+
+{# ========================================
+Alert/Message Components
+======================================== #}
+
+{% macro alert(type, message, dismissible=True) -%}
+<div class="alert alert-{{ type }} {% if dismissible %}alert-dismissible fade show{% endif %}" role="alert">
+  {{ message }}
+  {% if dismissible %}
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  {% endif %}
+</div>
+{%- endmacro %}
+
+
+{# ========================================
+Card Component
+======================================== #}
+
+{% macro card(title=None, body_class="") -%}
+<div class="card">
+  {% if title %}
+  <div class="card-header">
+    <h5 class="card-title mb-0">{{ title }}</h5>
+  </div>
+  {% endif %}
+  <div class="card-body {{ body_class }}">
+    {{ caller() }}
+  </div>
+</div>
+{%- endmacro %}
+
+
+{# ========================================
+Badge Component
+======================================== #}
+
+{% macro badge(text, type="primary") -%}
+<span class="badge bg-{{ type }}">{{ text }}</span>
+{%- endmacro %}
+
+
+{# ========================================
+Icon Component
+======================================== #}
+
+{% macro icon(name, size=None, color=None) -%}
+<i class="fa fa-{{ name }}{% if size %} fa-{{ size }}{% endif %}{% if color %} text-{{ color }}{% endif %}"></i>
+{%- endmacro %}
+
+
+{# ========================================
+Loading Spinner
+======================================== #}
+
+{% macro spinner(size="md", color="primary") -%}
+<div class="spinner-border spinner-border-{{ size }} text-{{ color }}" role="status">
+  <span class="visually-hidden">Loading...</span>
+</div>
+{%- endmacro %}
+
+
+{# ========================================
+Detail Page Components (Readonly Fields)
+======================================== #}
+
+{# Detail page header with back button #}
+{% macro detail_header(title, back_url=None, back_button_text="Back") -%}
+<div class="row">
+  <div class="col-8">
+    <h6>{{ title }}</h6>
+  </div>
+  <div class="col-4 d-flex justify-content-end">
+    {% if back_url %}
+    <a href="{{ back_url }}" class="btn btn-rojo">{{ back_button_text }}</a>
+    {% else %}
+    <button class="btn btn-rojo" id="volver">{{ back_button_text }}</button>
+    {% endif %}
+  </div>
+</div>
+<hr />
+{%- endmacro %}
+
+{# Readonly input field for detail pages #}
+{% macro detail_field(field_id, label, col_class="col-12 col-md-6") -%}
+<div class="{{ col_class }} mb-3">
+  <div class="input-group">
+    <div class="col-4">
+      <div class="input-group-prepend">
+        <label class="input-group-text" for="{{ field_id }}">{{ label }}</label>
+      </div>
+    </div>
+    <div class="col-8">
+      <input type="text" id="{{ field_id }}" class="form-control filled" readonly />
+    </div>
+  </div>
+</div>
+{%- endmacro %}
+
+{# Readonly auto-resizing textarea for detail pages #}
+{% macro detail_textarea(field_id, label, rows=1, col_class="col-12 col-md-6", prepend_height="") -%}
+<div class="{{ col_class }} mb-3">
+  <div class="input-group">
+    <div class="col-4">
+      <div class="input-group-prepend" {% if prepend_height %} style="height: 100%" {% endif %}>
+        <label class="input-group-text{% if prepend_height %} h-100{% endif %}" for="{{ field_id }}">{{ label }}</label>
+      </div>
+    </div>
+    <div class="col-8">
+      <textarea id="{{ field_id }}" class="form-control filled" readonly rows="{{ rows }}"
+        style="overflow-y: hidden; resize: none; max-height: 200px"></textarea>
+    </div>
+  </div>
+</div>
+{%- endmacro %}

@@ -1,0 +1,18 @@
+# Base de datos
+sqlalchemy==2.0.41
+asyncpg==0.30.0
+psycopg2-binary==2.9.10
+
+# Validación
+pydantic==2.11.7
+pydantic-settings==2.7.1
+
+# Seguridad
+python-jose[cryptography]==3.4.0
+passlib[bcrypt]==1.7.4
+
+# HTTP client
+httpx==0.28.1
+
+# Utilidades
+python-dotenv==1.0.1

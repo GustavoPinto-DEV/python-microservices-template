@@ -1,0 +1,212 @@
+{#
+  EJEMPLO DE USO: DataTable con Server-Side Processing
+
+  Este template demuestra cómo usar datatable_base.html.jinja para crear
+  una tabla con procesamiento server-side.
+#}
+
+{% extends "Shared/datatable_base.html.jinja" %}
+
+{# Configuración de la página #}
+{% block page_title %}Ejemplo DataTable{% endblock %}
+{% block create_button_text %}Crear Registro{% endblock %}
+{% block create_button_id %}btnCrear{% endblock %}
+
+{# Código JavaScript para inicializar la DataTable #}
+{% block datatable_js %}
+<script>
+  // URLs de los endpoints
+  const urlObtenerDatos = "/api/ejemplo/datos";
+  const urlCrearEditar = "/api/ejemplo/update";
+
+  $(document).ready(function () {
+    cargarTabla();
+
+    // Evento para el botón crear
+    $("#btnCrear").click(function () {
+      mostrarModalCrearEditar({});
+    });
+  });
+
+  /**
+   * Inicializa la tabla con server-side processing
+   */
+  function cargarTabla() {
+    // Usar el helper InicializarTablaServerSide del archivo datatable-serverside.js
+    InicializarTablaServerSide("#tabla", {
+      url: urlObtenerDatos,
+      responsive: ObtenerConfigResponsiveDataTable(),
+      columns: [
+        {
+          data: "id",
+          title: "ID",
+          name: "id",
+          className: "text-center"
+        },
+        {
+          data: "nombre",
+          title: "Nombre",
+          name: "nombre"
+        },
+        {
+          data: "email",
+          title: "Email",
+          name: "email"
+        },
+        {
+          data: "activo",
+          title: "Estado",
+          className: "text-center",
+          name: "activo",
+          render: (data) => RenderizarEstado(data)
+        },
+        {
+          data: null,
+          title: "Acciones",
+          className: "text-center",
+          name: "acciones",
+          orderable: false,
+          searchable: false,
+          render: function (data, type, row) {
+            return (
+              RenderizarBotonEditar("mostrarModalCrearEditar", row) +
+              RenderizarBotonToggle("activarDesactivar", row, row.activo)
+            );
+          }
+        }
+      ],
+      defaultOrder: [[0, 'desc']], // ID descendente por defecto
+      pageLength: 25,
+      onError: function (jqXHR, textStatus, errorThrown) {
+        console.error('Error al cargar datos:', textStatus, errorThrown);
+        MostrarError('Error al cargar datos', 'Ocurrió un error al obtener la información.');
+      }
+    });
+  }
+
+  /**
+   * Muestra el modal para crear/editar un registro
+   */
+  function mostrarModalCrearEditar(row) {
+    const isEditMode = !!row.id;
+    const titleText = isEditMode ? `Editar: ${row.nombre}` : "Crear Nuevo Registro";
+
+    Swal.fire({
+      title: titleText,
+      html: `
+        <div class="row mx-0 mb-0 mt-1">
+          <div class="col-12 mb-3">
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <label class="input-group-text" for="nombre">Nombre</label>
+              </div>
+              <input type="text" id="nombre" class="form-control"
+                value="${row.nombre || ''}" placeholder="Nombre">
+              <div id="nombre_error" class="invalid-feedback"></div>
+            </div>
+          </div>
+          <div class="col-12 mb-3">
+            <div class="input-group">
+              <div class="input-group-prepend">
+                <label class="input-group-text" for="email">Email</label>
+              </div>
+              <input type="email" id="email" class="form-control"
+                value="${row.email || ''}" placeholder="Email">
+              <div id="email_error" class="invalid-feedback"></div>
+            </div>
+          </div>
+          <div class="col mb-3 d-flex">
+            <div class="input-group-prepend">
+              <label class="input-group-text" for="activo">Activo</label>
+            </div>
+            <div class="form-control d-flex align-items-center justify-content-center"
+              style="margin-left: -2px;">
+              <label class="switch">
+                <input type="checkbox" id="activo" ${row.activo ? "checked" : ""}>
+                <span class="slider round"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      customClass: ObtenerSwalClasses(),
+      confirmButtonText: "Confirmar",
+      cancelButtonText: "Cancelar",
+      reverseButtons: true,
+      preConfirm: async () => {
+        // Validar campos
+        const fieldsToValidate = ["nombre", "email"];
+        let allFieldsValid = true;
+
+        for (const field of fieldsToValidate) {
+          const element = document.getElementById(field);
+          const errorElement = document.getElementById(`${field}_error`);
+          const isValid = await ValidarCampoGenerico(element, errorElement, {
+            tipo: field === "email" ? "email" : null
+          });
+          if (!isValid) {
+            allFieldsValid = false;
+          }
+          if (element) {
+            row[field] = element.value.trim();
+          }
+        }
+
+        row.activo = document.getElementById("activo").checked;
+
+        if (!allFieldsValid) {
+          Swal.showValidationMessage("Por favor corrige los errores antes de continuar.");
+          return false;
+        }
+
+        return row;
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        guardarRegistro(result.value);
+      }
+    });
+  }
+
+  /**
+   * Guarda un registro (crear o editar)
+   */
+  function guardarRegistro(data) {
+    $.ajax({
+      url: urlCrearEditar,
+      type: "POST",
+      contentType: "application/json",
+      data: JSON.stringify(data),
+      success: function (response) {
+        MostrarExitoTemporal("Operación realizada correctamente");
+        // Con server-side processing, simplemente recargamos la tabla
+        RecargarTablaServerSide("#tabla");
+      },
+      error: function (jqXHR) {
+        const errorMessage = ExtraerMensajeError(jqXHR);
+        MostrarError("Ha ocurrido un error en el proceso", errorMessage);
+      }
+    });
+  }
+
+  /**
+   * Activa/Desactiva un registro
+   */
+  function activarDesactivar(row) {
+    const accion = row.activo ? "desactivar" : "activar";
+
+    MostrarConfirmacion(
+      `¿Estás seguro de ${accion}?`,
+      `Esta acción ${accion}á el registro.`,
+      `Sí, ${accion}`
+    ).then((result) => {
+      if (result.isConfirmed) {
+        row.activo = !row.activo;
+        guardarRegistro(row);
+      }
+    });
+  }
+</script>
+{% endblock %}

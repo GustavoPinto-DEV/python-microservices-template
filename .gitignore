@@ -1,0 +1,227 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+env.bak/
+venv.bak/
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.sublime-project
+.sublime-workspace
+*.iml
+
+# IDE specific
+.vscode/*.json
+!.vscode/settings.example.json
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/usage.statistics.xml
+.idea/vcs.xml
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+.pytest_cache/
+.coverage*
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Debugging
+.pdb
+*.ipynb_checkpoints
+
+# Pre-commit
+.pre-commit-config.local.yaml
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+.env.development
+
+# Logs
+logs/
+*.log
+*.log.*
+npm-debug.log*
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+*.pgsql
+
+# OS
+.DS_Store
+Thumbs.db
+.idea
+.vscode/settings.json
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+.docker/
+
+# Build artifacts
+*.egg-info
+dist/
+build/
+
+# Alembic
+alembic/versions/__pycache__/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+.~*
+
+# Cache
+*.cache
+.cache/
+
+# Backups
+*.bak
+*.backup
+*~
+
+# IDE generated files
+*.iml
+.gradle
+.idea/
+local.properties
+
+# Node (if using node for frontend)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Static files (collected in production)
+staticfiles/
+/static/
+/media/
+
+# Documentation builds
+docs/_build/
+site/
+
+# Credentials and secrets (IMPORTANT)
+*.pem
+*.key
+*.cert
+id_rsa*
+.ssh/
+
+# Local development files
+local_settings.py
+secrets.json
+.env.secret
+credentials.json
+api_keys.txt
+
+# OS-specific
+.AppleDouble
+.LSOverride
+._*
+
+# Package manager lockfiles (optional - uncomment if needed)
+# Pipfile.lock
+# poetry.lock
+# package-lock.json
+
+# IDE cache
+.idea/caches/
+.idea/encodings.xml
+.idea/modules.xml
+.idea/modules.xml
+.idea/runConfigurations/
+.idea/inspectionProfiles/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# pyenv
+.python-version
+
+# celery beat schedule file
+celerybeat-schedule
+
+# SageMath parsed files
+.sage.py
+
+# Environments
+.env.*
+!.env.example
+
+# IDEs
+*.code-workspace
+
+# Miscellaneous
+*.orig
+desktop.ini
+.AppleDouble
+.LSOverride
+
+# Model files (if applicable)
+*.pkl
+*.joblib
+*.h5
+
+# Large files
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# IDE project specific
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+.claude/
+*.md
+!README.md

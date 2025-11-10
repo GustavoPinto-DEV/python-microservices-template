@@ -1,0 +1,65 @@
+{#
+  Base template for audit log pages with filters and DataTables
+
+  This template is for audit logs that have custom filters
+  before the table.
+
+  Usage example:
+    {% extends "Shared/audit_log_base.html.jinja" %}
+
+    {% block page_title %}API Audit Log{% endblock %}
+
+    {% block filtros %}
+      <!-- Your custom filters here -->
+    {% endblock %}
+
+    {% block datatable_js %}
+    <script>
+      // Your DataTable logic here
+    </script>
+    {% endblock %}
+#}
+
+{% extends "Shared/layout.html.jinja" %}
+{% from 'Shared/macros.html.jinja' import datatable_styles, datatable_scripts, datatable_container %}
+
+{# Include DataTables CSS automatically #}
+{% block styles %}
+{{ datatable_styles() }}
+{% endblock %}
+
+{# Page content #}
+{% block content %}
+<h6>{{ self.page_title() }}</h6>
+<hr />
+
+{# Custom filters area #}
+{% block filtros %}
+{# Override this block in child templates with your filters #}
+{% endblock %}
+
+<hr />
+<br />
+
+{# DataTable container #}
+{{ datatable_container(table_id=self.table_id() if self.table_id() else "tabla") }}
+
+<br />
+{% endblock %}
+
+{# Scripts block #}
+{% block scripts %}
+{{ datatable_scripts() }}
+
+{# Custom DataTable initialization #}
+{% block datatable_js %}
+{# Override this block in child templates with your DataTable code #}
+{% endblock %}
+{% endblock %}
+
+{# ========================================
+   Blocks to override in child templates
+   ======================================== #}
+
+{% block page_title %}Audit Log{% endblock %}
+{% block table_id %}tabla{% endblock %}
