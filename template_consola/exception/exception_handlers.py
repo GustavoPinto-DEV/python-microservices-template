@@ -1,228 +1,228 @@
 """
-Manejadores de excepciones para Consola
+Exception Handlers for Console
 
-Define excepciones personalizadas y helpers para manejo de errores
-en procesos batch.
+Defines custom exceptions and helpers for error handling
+in batch processes.
 """
 
-import logging
 from typing import Optional
 from datetime import datetime
 
-logger = logging.getLogger(__name__)
+# Centralized logger
+from config.logger import logger
 
 
-# Excepciones personalizadas
+# Custom exceptions
 
-class ProcesoError(Exception):
-    """Excepción base para errores de procesos batch"""
-    def __init__(self, proceso: str, message: str, detail: Optional[str] = None):
-        self.proceso = proceso
+class ProcessError(Exception):
+    """Base exception for batch process errors"""
+    def __init__(self, process: str, message: str, detail: Optional[str] = None):
+        self.process = process
         self.message = message
         self.detail = detail
         self.timestamp = datetime.now()
         super().__init__(self.message)
 
 
-class DataValidationError(ProcesoError):
-    """Error de validación de datos"""
-    def __init__(self, proceso: str, campo: str, valor: any, razon: str):
-        self.campo = campo
-        self.valor = valor
-        message = f"Validación fallida en campo '{campo}': {razon}"
-        super().__init__(proceso, message, detail=f"Valor: {valor}")
+class DataValidationError(ProcessError):
+    """Data validation error"""
+    def __init__(self, process: str, field: str, value: any, reason: str):
+        self.field = field
+        self.value = value
+        message = f"Validation failed on field '{field}': {reason}"
+        super().__init__(process, message, detail=f"Value: {value}")
 
 
-class ExternalServiceError(ProcesoError):
-    """Error al comunicarse con servicio externo"""
-    def __init__(self, proceso: str, servicio: str, detail: Optional[str] = None):
-        self.servicio = servicio
-        message = f"Error comunicándose con servicio externo: {servicio}"
-        super().__init__(proceso, message, detail)
+class ExternalServiceError(ProcessError):
+    """Error communicating with external service"""
+    def __init__(self, process: str, service: str, detail: Optional[str] = None):
+        self.service = service
+        message = f"Error communicating with external service: {service}"
+        super().__init__(process, message, detail)
 
 
-class DatabaseError(ProcesoError):
-    """Error de base de datos"""
-    def __init__(self, proceso: str, operacion: str, detail: Optional[str] = None):
-        self.operacion = operacion
-        message = f"Error en operación de base de datos: {operacion}"
-        super().__init__(proceso, message, detail)
+class DatabaseError(ProcessError):
+    """Database error"""
+    def __init__(self, process: str, operation: str, detail: Optional[str] = None):
+        self.operation = operation
+        message = f"Error in database operation: {operation}"
+        super().__init__(process, message, detail)
 
 
 class ConfigurationError(Exception):
-    """Error de configuración del servicio"""
-    def __init__(self, parametro: str, razon: str):
-        self.parametro = parametro
-        self.razon = razon
-        message = f"Error de configuración en '{parametro}': {razon}"
+    """Service configuration error"""
+    def __init__(self, parameter: str, reason: str):
+        self.parameter = parameter
+        self.reason = reason
+        message = f"Configuration error in '{parameter}': {reason}"
         super().__init__(message)
 
 
-class ProcessTimeoutError(ProcesoError):
-    """Timeout en ejecución de proceso"""
-    def __init__(self, proceso: str, timeout_segundos: int):
-        self.timeout_segundos = timeout_segundos
-        message = f"Proceso excedió timeout de {timeout_segundos} segundos"
-        super().__init__(proceso, message)
+class ProcessTimeoutError(ProcessError):
+    """Process execution timeout"""
+    def __init__(self, process: str, timeout_seconds: int):
+        self.timeout_seconds = timeout_seconds
+        message = f"Process exceeded timeout of {timeout_seconds} seconds"
+        super().__init__(process, message)
 
 
-# Helpers para manejo de errores
+# Error handling helpers
 
-def log_error(error: Exception, contexto: Optional[dict] = None):
+def log_error(error: Exception, context: Optional[dict] = None):
     """
-    Registra un error con contexto adicional.
+    Logs an error with additional context.
 
     Args:
-        error: Excepción a registrar
-        contexto: Información adicional de contexto
+        error: Exception to log
+        context: Additional context information
     """
     error_info = {
-        "tipo": type(error).__name__,
-        "mensaje": str(error),
+        "type": type(error).__name__,
+        "message": str(error),
         "timestamp": datetime.now().isoformat()
     }
 
-    if contexto:
-        error_info["contexto"] = contexto
+    if context:
+        error_info["context"] = context
 
-    if isinstance(error, ProcesoError):
-        error_info["proceso"] = error.proceso
-        error_info["detalle"] = error.detail
+    if isinstance(error, ProcessError):
+        error_info["process"] = error.process
+        error_info["detail"] = error.detail
 
-    logger.error(f"Error registrado: {error_info}", exc_info=True)
+    logger.error(f"Error logged: {error_info}", exc_info=True)
 
     return error_info
 
 
-async def manejar_error_proceso(
+async def handle_process_error(
     error: Exception,
-    proceso: str,
-    continuar_en_error: bool = False
+    process: str,
+    continue_on_error: bool = False
 ) -> bool:
     """
-    Maneja un error de proceso decidiendo si continuar o abortar.
+    Handles a process error deciding whether to continue or abort.
 
     Args:
-        error: Excepción ocurrida
-        proceso: Nombre del proceso
-        continuar_en_error: Si debe continuar ejecutando después del error
+        error: Exception that occurred
+        process: Process name
+        continue_on_error: Whether to continue executing after error
 
     Returns:
-        True si debe continuar, False si debe abortar
+        True if should continue, False if should abort
     """
-    log_error(error, {"proceso": proceso})
+    log_error(error, {"process": process})
 
-    # Errores críticos que siempre abortan
-    errores_criticos = (
+    # Critical errors that always abort
+    critical_errors = (
         ConfigurationError,
         DatabaseError,
         ProcessTimeoutError
     )
 
-    if isinstance(error, errores_criticos):
-        logger.error(f"❌ Error crítico en {proceso}. Abortando.")
+    if isinstance(error, critical_errors):
+        logger.error(f"❌ Critical error in {process}. Aborting.")
         return False
 
-    # Errores recuperables
-    if continuar_en_error:
-        logger.warning(f"⚠️ Error en {proceso}. Continuando ejecución.")
+    # Recoverable errors
+    if continue_on_error:
+        logger.warning(f"⚠️ Error in {process}. Continuing execution.")
         return True
 
     return False
 
 
-def crear_reporte_errores(errores: list) -> dict:
+def create_error_report(errors: list) -> dict:
     """
-    Crea un reporte consolidado de errores.
+    Creates a consolidated error report.
 
     Args:
-        errores: Lista de errores ocurridos
+        errors: List of errors that occurred
 
     Returns:
-        Diccionario con reporte de errores
+        Dictionary with error report
     """
-    if not errores:
+    if not errors:
         return {
-            "total_errores": 0,
-            "errores_por_tipo": {},
-            "errores_criticos": 0,
-            "detalles": []
+            "total_errors": 0,
+            "errors_by_type": {},
+            "critical_errors": 0,
+            "details": []
         }
 
-    # Contar por tipo
-    errores_por_tipo = {}
-    errores_criticos = 0
+    # Count by type
+    errors_by_type = {}
+    critical_errors = 0
 
-    for error in errores:
-        tipo = type(error).__name__
-        errores_por_tipo[tipo] = errores_por_tipo.get(tipo, 0) + 1
+    for error in errors:
+        error_type = type(error).__name__
+        errors_by_type[error_type] = errors_by_type.get(error_type, 0) + 1
 
         if isinstance(error, (ConfigurationError, DatabaseError, ProcessTimeoutError)):
-            errores_criticos += 1
+            critical_errors += 1
 
     return {
-        "total_errores": len(errores),
-        "errores_por_tipo": errores_por_tipo,
-        "errores_criticos": errores_criticos,
-        "detalles": [
+        "total_errors": len(errors),
+        "errors_by_type": errors_by_type,
+        "critical_errors": critical_errors,
+        "details": [
             {
-                "tipo": type(e).__name__,
-                "mensaje": str(e),
+                "type": type(e).__name__,
+                "message": str(e),
                 "timestamp": getattr(e, 'timestamp', None)
             }
-            for e in errores[:10]  # Limitar a 10 errores en detalle
+            for e in errors[:10]  # Limit to 10 errors in detail
         ]
     }
 
 
-class ErrorAcumulador:
+class ErrorAccumulator:
     """
-    Acumulador de errores para procesos batch.
+    Error accumulator for batch processes.
 
-    Útil para recolectar errores durante procesamiento y
-    generar reporte al final.
+    Useful for collecting errors during processing and
+    generating report at the end.
     """
 
     def __init__(self):
-        self.errores = []
-        self.errores_por_tipo = {}
+        self.errors = []
+        self.errors_by_type = {}
 
-    def agregar(self, error: Exception, contexto: Optional[dict] = None):
-        """Agrega un error al acumulador"""
-        error_info = log_error(error, contexto)
-        self.errores.append(error_info)
+    def add(self, error: Exception, context: Optional[dict] = None):
+        """Adds an error to the accumulator"""
+        error_info = log_error(error, context)
+        self.errors.append(error_info)
 
-        tipo = type(error).__name__
-        self.errores_por_tipo[tipo] = self.errores_por_tipo.get(tipo, 0) + 1
+        error_type = type(error).__name__
+        self.errors_by_type[error_type] = self.errors_by_type.get(error_type, 0) + 1
 
-    def tiene_errores(self) -> bool:
-        """Verifica si hay errores acumulados"""
-        return len(self.errores) > 0
+    def has_errors(self) -> bool:
+        """Checks if there are accumulated errors"""
+        return len(self.errors) > 0
 
-    def tiene_errores_criticos(self) -> bool:
-        """Verifica si hay errores críticos"""
+    def has_critical_errors(self) -> bool:
+        """Checks if there are critical errors"""
         return any(
-            e.get("tipo") in ["ConfigurationError", "DatabaseError", "ProcessTimeoutError"]
-            for e in self.errores
+            e.get("type") in ["ConfigurationError", "DatabaseError", "ProcessTimeoutError"]
+            for e in self.errors
         )
 
-    def get_reporte(self) -> dict:
-        """Genera reporte de errores"""
+    def get_report(self) -> dict:
+        """Generates error report"""
         return {
-            "total": len(self.errores),
-            "por_tipo": self.errores_por_tipo,
-            "criticos": self.tiene_errores_criticos(),
-            "detalles": self.errores[:10]  # Primeros 10
+            "total": len(self.errors),
+            "by_type": self.errors_by_type,
+            "critical": self.has_critical_errors(),
+            "details": self.errors[:10]  # First 10
         }
 
     def clear(self):
-        """Limpia errores acumulados"""
-        self.errores = []
-        self.errores_por_tipo = {}
+        """Clears accumulated errors"""
+        self.errors = []
+        self.errors_by_type = {}
 
 
-# TODO: Agregar más excepciones según necesidad
-# Ejemplos:
+# TODO: Add more exceptions as needed
+# Examples:
 # - FileProcessingError
 # - SFTPError
 # - NotificationError

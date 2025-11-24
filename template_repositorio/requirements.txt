@@ -15,4 +15,5 @@ passlib[bcrypt]==1.7.4
 httpx==0.28.1
 
 # Utilidades
-python-dotenv==1.0.1
+starlette==0.46.2
+rut-chile==2.0.1

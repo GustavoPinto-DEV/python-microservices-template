@@ -1,49 +1,49 @@
 # API Template - FastAPI
 
-Plantilla genérica para crear APIs REST con FastAPI, diseñada para proyectos empresariales con arquitectura estandarizada.
+Generic template for creating REST APIs with FastAPI, designed for enterprise projects with standardized architecture.
 
-## Características
+## Features
 
-- ✅ FastAPI con documentación automática (Swagger/ReDoc)
-- ✅ Autenticación JWT
-- ✅ Middleware de compresión de responses (gzip)
-- ✅ Rate limiting opcional
-- ✅ Manejo centralizado de excepciones
-- ✅ Logging estructurado
-- ✅ Conexión asíncrona a PostgreSQL (opcional)
-- ✅ Arquitectura limpia (Router → Controller → Repository)
+- ✅ FastAPI with automatic documentation (Swagger/ReDoc)
+- ✅ JWT authentication
+- ✅ Response compression middleware (gzip)
+- ✅ Optional rate limiting
+- ✅ Centralized exception handling
+- ✅ Structured logging
+- ✅ Asynchronous PostgreSQL connection (optional)
+- ✅ Clean architecture (Router → Controller → Repository)
 - ✅ Docker ready
 - ✅ Health check endpoints
 
-## Estructura del Proyecto
+## Project Structure
 
 ```
 template_api/
-├── main.py              # Punto de entrada
-├── requirements.txt     # Dependencias Python
-├── .env.example         # Variables de entorno (copiar a .env)
-├── Dockerfile          # Contenedor Docker
+├── main.py              # Entry point
+├── requirements.txt     # Python dependencies
+├── .env.example         # Environment variables (copy to .env)
+├── Dockerfile          # Docker container
 ├── config/
-│   └── env.py          # Variables globales de entorno
+│   └── env.py          # Global environment variables
 ├── controller/
-│   └── v1Controller.py # Lógica de negocio
+│   └── v1Controller.py # Business logic
 ├── dependencies/
-│   ├── auth.py         # Autenticación JWT
-│   └── util.py         # Utilidades del proyecto
+│   ├── auth.py         # JWT authentication
+│   └── util.py         # Project utilities
 ├── exception/
-│   └── exception_handlers.py  # Manejadores de errores
+│   └── exception_handlers.py  # Error handlers
 ├── middleware/
-│   ├── CompressionMiddleware.py   # Compresión gzip de responses
+│   ├── CompressionMiddleware.py   # Gzip response compression
 │   └── RateLimiterMiddleware.py   # Rate limiting
 ├── router/
-│   └── v1Router.py     # Definición de rutas
+│   └── v1Router.py     # Route definitions
 └── schema/
-    └── schemas.py      # Schemas Pydantic
+    └── schemas.py      # Pydantic schemas
 ```
 
-## Instalación
+## Installation
 
-### 1. Crear entorno virtual
+### 1. Create virtual environment
 
 ```bash
 py -3.12 -m venv venv
@@ -55,32 +55,38 @@ venv\Scripts\activate
 source venv/bin/activate
 ```
 
-### 2. Instalar dependencias
+### 2. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Configurar variables de entorno
+### 3. Configure environment variables
+
+**⚠️ IMPORTANT:** Environment variables are NOT configured in this template.
+
+All variables are centrally managed in `repositorio_lib/config/.env`
 
 ```bash
-# Copiar el archivo de ejemplo
+# Configure variables in the shared repository
+cd ../repositorio_lib/config
 cp .env.example .env
-
-# Editar .env con tus configuraciones
+# Edit .env with DB, JWT, SMTP, etc.
 ```
 
-### 4. Ejecutar en modo desarrollo
+This template will automatically import configuration from `repositorio_lib.config.settings`
+
+### 4. Run in development mode
 
 ```bash
 uvicorn main:app --port 8000 --reload
 ```
 
-## Uso
+## Usage
 
-### Documentación Interactiva
+### Interactive Documentation
 
-Una vez iniciado el servidor, accede a:
+Once the server is started, access:
 
 - **Swagger UI**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
@@ -91,9 +97,9 @@ Una vez iniciado el servidor, accede a:
 curl http://localhost:8000/health
 ```
 
-## Agregar Nuevo Endpoint
+## Adding a New Endpoint
 
-### 1. Definir ruta en `router/v1Router.py`
+### 1. Define route in `router/v1Router.py`
 
 ```python
 @router.post("/users", response_model=UserResponse)
@@ -104,16 +110,16 @@ async def create_user(
     return await controller.create_user(request)
 ```
 
-### 2. Implementar handler en `controller/v1Controller.py`
+### 2. Implement handler in `controller/v1Controller.py`
 
 ```python
 async def create_user(self, request: UserRequest) -> Result:
-    # Lógica de negocio
+    # Business logic
     result = await self.repository.create_user(request)
     return result
 ```
 
-### 3. Definir schemas en `schema/schemas.py`
+### 3. Define schemas in `schema/schemas.py`
 
 ```python
 class UserRequest(BaseModel):
@@ -128,25 +134,25 @@ class UserResponse(BaseModel):
 
 ## Middleware
 
-### Compression Middleware (Habilitado por defecto)
+### Compression Middleware (Enabled by default)
 
-Comprime automáticamente responses grandes usando gzip:
+Automatically compresses large responses using gzip:
 
 ```python
 app.add_middleware(
     CompressionMiddleware,
-    min_size=500,           # Tamaño mínimo en bytes para comprimir
-    compression_level=6,    # Nivel de compresión (1-9)
+    min_size=500,           # Minimum size in bytes to compress
+    compression_level=6,    # Compression level (1-9)
     exclude_paths=["/health", "/docs"]
 )
 ```
 
-### Rate Limiter (Opcional)
+### Rate Limiter (Optional)
 
-Protege contra abuso y ataques DDoS:
+Protects against abuse and DDoS attacks:
 
 ```python
-# Descomentar en main.py para habilitar
+# Uncomment in main.py to enable
 app.add_middleware(
     RateLimiterMiddleware,
     max_requests=100,
@@ -165,27 +171,50 @@ docker build -t api-template .
 ### Run
 
 ```bash
-docker run -p 8000:8000 --env-file .env api-template
+# Environment variables from repositorio_lib
+docker run -p 8000:8000 \
+  -v $(pwd)/../repositorio_lib:/app/repositorio_lib \
+  --env-file ../repositorio_lib/config/.env \
+  api-template
 ```
 
-## Integración con Repositorio Compartido
+## Integration with Shared Repository
 
-Este template está diseñado para trabajar con una librería compartida (capa de datos).
+This template **requires** a shared library (data layer) to function.
 
-### Instalar librería compartida
+### Install shared library
 
 ```bash
-# Asumiendo que tienes un proyecto 'repositorio' en el directorio padre
-pip install -e ../repositorio
+# Assuming you have the repository in the parent directory
+pip install -e ../repositorio_lib
 ```
 
-### Usar en el código
+### Centralized configuration
+
+**ALL environment variables are managed in:**
+
+```
+../repositorio_lib/config/
+├── settings.py      # Configuration with Pydantic
+├── .env             # Environment variables (create from .env.example)
+└── .env.example     # Configuration template
+```
+
+### Use in code
 
 ```python
-# Descomentar en main.py y controllers
-from your_repo_lib.core.database import get_async_session
-from your_repo_lib.core.logger import setup_logger
-from your_repo_lib.service.repository import v1Repository
+# Configuration (DO NOT use environment variables directly)
+from repositorio_lib.config.settings import db_settings, jwt_settings, app_settings
+
+# Database
+from repositorio_lib.core.database import get_async_session
+from repositorio_lib.core.logger import setup_logger
+from repositorio_lib.service.repository import v1Repositorio
+
+# Usage example
+db_url = db_settings.get_connection_string(async_mode=True)
+secret_key = jwt_settings.SECRET_KEY
+log_dir = app_settings.get_log_dir()
 ```
 
 ## Testing
@@ -194,41 +223,45 @@ from your_repo_lib.service.repository import v1Repository
 pytest tests/ -v
 ```
 
-## Producción
+## Production
 
-### Variables de entorno importantes
+### Environment Variables
 
+**⚠️ CONFIGURE IN:** `repositorio_lib/config/.env`
+
+Important variables for production:
 - `ENVIRONMENT=production`
-- Configurar `DB_*` con credenciales de producción
-- Cambiar `SECRET_KEY` por una clave segura
-- Ajustar `RATE_LIMIT_*` según necesidad
-- Configurar `ALLOWED_ORIGINS` en CORS
+- `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_NAME` (real credentials)
+- `SECRET_KEY` (generate secure key)
+- `LOG_DIR_PRD=/var/log/app/logs`
+- `SMTP_*` (email configuration)
+- `POOL_SIZE`, `MAX_OVERFLOW` (optimize for production)
 
-### Ejecutar con Uvicorn
+### Run with Uvicorn
 
 ```bash
 uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
-### Recomendaciones de Producción
+### Production Recommendations
 
-1. Usar un reverse proxy (Nginx, Traefik)
-2. Habilitar HTTPS
-3. Configurar CORS con orígenes específicos
-4. Habilitar rate limiting
-5. Configurar logging a archivos o servicio externo
-6. Implementar monitoreo (Prometheus, DataDog)
-7. Usar variables de entorno para secretos
-8. Configurar health checks en orquestador (Kubernetes, Docker Swarm)
+1. Use a reverse proxy (Nginx, Traefik)
+2. Enable HTTPS
+3. Configure CORS with specific origins
+4. Enable rate limiting
+5. Configure logging to files or external service
+6. Implement monitoring (Prometheus, DataDog)
+7. Use environment variables for secrets
+8. Configure health checks in orchestrator (Kubernetes, Docker Swarm)
 
-## Seguridad
+## Security
 
-- JWT para autenticación
-- CORS configurable
-- Rate limiting contra abuso
-- Validación de datos con Pydantic
-- Headers de seguridad (opcional con SecurityHeadersMiddleware)
+- JWT for authentication
+- Configurable CORS
+- Rate limiting against abuse
+- Data validation with Pydantic
+- Security headers (optional with SecurityHeadersMiddleware)
 
-## Licencia
+## License
 
-Plantilla de código libre para uso en proyectos Python
+Free code template for use in Python projects

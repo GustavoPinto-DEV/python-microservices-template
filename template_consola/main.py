@@ -1,10 +1,10 @@
 """
-Consola Template - Main Entry Point
+Console Template - Main Entry Point
 
-Template para servicios de consola/batch basado en asyncio.
-Ejecuta procesos en segundo plano de forma continua o programada.
+Template for console/batch services based on asyncio.
+Executes background processes continuously or on schedule.
 
-Uso:
+Usage:
     python main.py
 """
 
@@ -12,80 +12,70 @@ import asyncio
 import signal
 import logging
 
+# Centralized logger (ONE SINGLE logger for the entire application)
+from config.logger import logger
+
 # Service
-from service.servicio import Servicio
-
-# TODO: Descomentar cuando tengas repositorio_lib configurado
-# from repositorio_lib.core.logger import setup_logger
-
-# Setup logger
-# logger = setup_logger("consola_template", level=logging.INFO, log_to_file=True)
-
-# Alternativa temporal sin repositorio_lib
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+from service.servicio import Service
 
 
 async def main():
     """
-    Función principal de la consola.
+    Main console function.
 
-    Servicio en segundo plano que ejecuta procesos batch de forma continua:
-    - Actualización automática de datos
-    - Procesamiento de tareas pendientes
-    - Sincronización con sistemas externos
-    - Generación de reportes
+    Background service that executes batch processes continuously:
+    - Automatic data updates
+    - Processing of pending tasks
+    - Synchronization with external systems
+    - Report generation
     """
-    logger.info("🚀 Iniciando servicio de consola...")
+    logger.info("🚀 Starting console service...")
 
-    # Inicializar servicio
-    servicio = Servicio()
-    await servicio.iniciar_servicio()
+    # Initialize service
+    service = Service()
+    await service.start_service()
 
     # region Signal Handling
-    # Manejar señales de terminación para shutdown graceful
+    # Handle termination signals for graceful shutdown
     loop = asyncio.get_running_loop()
     stop_event = asyncio.Event()
 
     def stop():
-        """Callback para detener el servicio"""
-        logger.info("⚠️ Señal de detención recibida")
+        """Callback to stop the service"""
+        logger.info("⚠️ Stop signal received")
         stop_event.set()
 
     try:
-        # Registrar handlers para SIGINT (Ctrl+C) y SIGTERM (docker stop)
+        # Register handlers for SIGINT (Ctrl+C) and SIGTERM (docker stop)
         loop.add_signal_handler(signal.SIGINT, stop)
         loop.add_signal_handler(signal.SIGTERM, stop)
-        logger.info("✅ Signal handlers registrados")
+        logger.info("✅ Signal handlers registered")
     except NotImplementedError:
-        # Windows no soporta add_signal_handler
+        # Windows doesn't support add_signal_handler
         logger.warning(
-            "⚠️ Señales no soportadas en esta plataforma. "
-            "Usa Ctrl+C para salir."
+            "⚠️ Signals not supported on this platform. "
+            "Use Ctrl+C to exit."
         )
     # endregion
 
-    logger.info("✅ Servicio en ejecución. Presiona Ctrl+C para detener")
+    logger.info("✅ Service running. Press Ctrl+C to stop")
 
     try:
-        # Esperar señal de detención
+        # Wait for stop signal
         await stop_event.wait()
     except KeyboardInterrupt:
-        logger.info("⌨️ Interrupción por teclado recibida")
+        logger.info("⌨️ Keyboard interrupt received")
 
-    # Detener servicio de forma limpia
-    await servicio.detener_servicio()
-    logger.info("🛑 Servicio de consola finalizado")
+    # Stop service cleanly
+    await service.stop_service()
+    logger.info("🛑 Console service terminated")
 
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        logger.info("Aplicación interrumpida por usuario")
+        logger.info("Application interrupted by user")
     except Exception as e:
-        logger.error(f"Error fatal en aplicación: {e}", exc_info=True)
+        logger.error(f"Fatal application error: {e}", exc_info=True)
         exit(1)

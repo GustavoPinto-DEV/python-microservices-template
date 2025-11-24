@@ -1,8 +1,8 @@
 """
-Manejadores centralizados de excepciones
+Centralized Exception Handlers
 
-Proporciona manejo consistente de errores en toda la API.
-Los errores se capturan, logean y formatean apropiadamente.
+Provides consistent error handling throughout the API.
+Errors are caught, logged, and formatted appropriately.
 """
 
 from fastapi import FastAPI, Request, status
@@ -10,23 +10,23 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from datetime import datetime
-import logging
 
-logger = logging.getLogger(__name__)
+# Centralized logger
+from config.logger import logger
 
 
-def registrar_exception_handlers(app: FastAPI) -> None:
+def register_exception_handlers(app: FastAPI) -> None:
     """
-    Registra todos los manejadores de excepciones en la aplicación.
+    Register all exception handlers in the application.
 
     Args:
-        app: Instancia de FastAPI
+        app: FastAPI instance
     """
 
     @app.exception_handler(StarletteHTTPException)
     async def http_exception_handler(request: Request, exc: StarletteHTTPException):
         """
-        Maneja excepciones HTTP estándar (404, 403, etc.)
+        Handle standard HTTP exceptions (404, 403, etc.)
         """
         logger.warning(
             f"HTTP Exception: {exc.status_code} - {exc.detail} - "
@@ -47,8 +47,8 @@ def registrar_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(request: Request, exc: RequestValidationError):
         """
-        Maneja errores de validación de Pydantic.
-        Retorna información detallada de los campos inválidos.
+        Handle Pydantic validation errors.
+        Returns detailed information about invalid fields.
         """
         errors = []
         for error in exc.errors():
@@ -67,7 +67,7 @@ def registrar_exception_handlers(app: FastAPI) -> None:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content={
                 "error": "VALIDATION_ERROR",
-                "message": "Error de validación en los datos enviados",
+                "message": "Validation error in submitted data",
                 "details": errors,
                 "path": str(request.url.path),
                 "timestamp": datetime.now().isoformat()
@@ -77,8 +77,8 @@ def registrar_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(ValueError)
     async def value_error_handler(request: Request, exc: ValueError):
         """
-        Maneja errores de valor (ValueError).
-        Típicamente usados para validaciones de negocio.
+        Handle value errors (ValueError).
+        Typically used for business validations.
         """
         logger.warning(
             f"Value Error - Path: {request.url.path} - "
@@ -98,7 +98,7 @@ def registrar_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(PermissionError)
     async def permission_error_handler(request: Request, exc: PermissionError):
         """
-        Maneja errores de permisos.
+        Handle permission errors.
         """
         logger.warning(
             f"Permission Error - Path: {request.url.path} - "
@@ -109,7 +109,7 @@ def registrar_exception_handlers(app: FastAPI) -> None:
             status_code=status.HTTP_403_FORBIDDEN,
             content={
                 "error": "PERMISSION_DENIED",
-                "message": "No tiene permisos para realizar esta acción",
+                "message": "You don't have permissions to perform this action",
                 "detail": str(exc),
                 "path": str(request.url.path),
                 "timestamp": datetime.now().isoformat()
@@ -119,8 +119,8 @@ def registrar_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(Exception)
     async def general_exception_handler(request: Request, exc: Exception):
         """
-        Maneja todas las excepciones no capturadas.
-        Último recurso para evitar que la API crashee.
+        Handle all uncaught exceptions.
+        Last resort to prevent the API from crashing.
         """
         logger.error(
             f"Unhandled Exception - Path: {request.url.path} - "
@@ -128,17 +128,17 @@ def registrar_exception_handlers(app: FastAPI) -> None:
             exc_info=True
         )
 
-        # En producción, no exponer detalles internos
+        # In production, don't expose internal details
         import os
         is_dev = os.getenv("ENVIRONMENT", "dev") == "dev"
 
-        error_detail = str(exc) if is_dev else "Error interno del servidor"
+        error_detail = str(exc) if is_dev else "Internal server error"
 
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={
                 "error": "INTERNAL_SERVER_ERROR",
-                "message": "Ha ocurrido un error inesperado",
+                "message": "An unexpected error occurred",
                 "detail": error_detail,
                 "path": str(request.url.path),
                 "timestamp": datetime.now().isoformat()
@@ -146,10 +146,10 @@ def registrar_exception_handlers(app: FastAPI) -> None:
         )
 
 
-# Excepciones personalizadas para el dominio
+# Custom exceptions for the domain
 
 class BusinessLogicError(Exception):
-    """Excepción para errores de lógica de negocio"""
+    """Exception for business logic errors"""
     def __init__(self, message: str, detail: str = None):
         self.message = message
         self.detail = detail
@@ -157,39 +157,39 @@ class BusinessLogicError(Exception):
 
 
 class ResourceNotFoundError(Exception):
-    """Excepción cuando un recurso no se encuentra"""
+    """Exception when a resource is not found"""
     def __init__(self, resource_type: str, resource_id: any):
         self.resource_type = resource_type
         self.resource_id = resource_id
-        self.message = f"{resource_type} con ID {resource_id} no encontrado"
+        self.message = f"{resource_type} with ID {resource_id} not found"
         super().__init__(self.message)
 
 
 class DuplicateResourceError(Exception):
-    """Excepción cuando se intenta crear un recurso duplicado"""
+    """Exception when attempting to create a duplicate resource"""
     def __init__(self, resource_type: str, field: str, value: any):
         self.resource_type = resource_type
         self.field = field
         self.value = value
-        self.message = f"{resource_type} con {field}='{value}' ya existe"
+        self.message = f"{resource_type} with {field}='{value}' already exists"
         super().__init__(self.message)
 
 
 class ExternalServiceError(Exception):
-    """Excepción cuando falla una llamada a servicio externo"""
+    """Exception when an external service call fails"""
     def __init__(self, service_name: str, detail: str = None):
         self.service_name = service_name
         self.detail = detail
-        self.message = f"Error en servicio externo: {service_name}"
+        self.message = f"Error in external service: {service_name}"
         super().__init__(self.message)
 
 
-# Registrar manejadores para excepciones personalizadas
+# Register handlers for custom exceptions
 def register_custom_handlers(app: FastAPI):
     """
-    Registra manejadores para excepciones personalizadas.
+    Register handlers for custom exceptions.
 
-    Llamar después de registrar_exception_handlers(app).
+    Call after register_exception_handlers(app).
     """
 
     @app.exception_handler(BusinessLogicError)
@@ -244,8 +244,8 @@ def register_custom_handlers(app: FastAPI):
         )
 
 
-# TODO: Agregar más excepciones personalizadas según necesidad
-# Ejemplos:
+# TODO: Add more custom exceptions as needed
+# Examples:
 # - InvalidCredentialsError
 # - InsufficientPermissionsError
 # - RateLimitExceededError

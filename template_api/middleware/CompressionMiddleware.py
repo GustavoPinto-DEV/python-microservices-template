@@ -13,9 +13,9 @@ Funcionalidades:
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi import Request, Response
 import gzip
-import logging
 
-logger = logging.getLogger(__name__)
+# Logger centralizado
+from config.logger import logger
 
 
 class CompressionMiddleware(BaseHTTPMiddleware):

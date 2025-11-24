@@ -14,9 +14,9 @@ import secrets
 import hmac
 import hashlib
 from typing import Optional, List
-import logging
 
-logger = logging.getLogger(__name__)
+# Logger centralizado
+from config.logger import logger
 
 
 class CSRFMiddleware(BaseHTTPMiddleware):

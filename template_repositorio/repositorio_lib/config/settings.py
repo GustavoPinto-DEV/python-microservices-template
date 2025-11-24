@@ -1,51 +1,85 @@
 """
-Settings centralizados con Pydantic
+Centralized Settings with Pydantic
 
-Carga y valida todas las variables de entorno necesarias.
+Loads and validates all necessary environment variables.
 """
 
+from pathlib import Path
+from pydantic import Field
 from pydantic_settings import BaseSettings
-from typing import Optional
-import os
+
+project_root = Path(__file__).parent.parent.parent.parent
 
 
-class DatabaseSettings(BaseSettings):
-    """Configuración de base de datos"""
-    DB_USER: str
-    DB_PASSWORD: str
-    DB_HOST: str = "localhost"
-    DB_PORT: int = 5432
-    DB_NAME: str
+class DefaultSettings(BaseSettings):
+    """Default configuration"""
 
     class Config:
-        env_file = ".env"
+        env_file = Path(__file__).resolve().parent / ".env"
 
 
-class JWTSettings(BaseSettings):
-    """Configuración de JWT"""
-    SECRET_KEY: str
+class DatabaseSettings(DefaultSettings):
+    """Database configuration"""
+
+    DB_USER: str = "root"
+    DB_PASSWORD: str = "toor"
+    DB_HOST: str = "localhost"
+    DB_PORT: int = 5432
+    DB_NAME: str = "postgres"
+    DB_ECHO: bool = False
+    POOL_SIZE: int = 10
+    MAX_OVERFLOW: int = 20
+    POOL_PRE_PING: bool = False
+    POOL_RECYCLE: int = 3600
+    POOL_TIMEOUT: int = 30
+
+    def get_connection_string(self, async_mode: bool = True) -> str:
+        """
+        Returns the PostgreSQL connection string.
+
+        Args:
+            async_mode: If True, uses the 'asyncpg' driver (for async SQLAlchemy)
+
+        Returns:
+            str: Complete connection string.
+        """
+        driver = "postgresql+asyncpg" if async_mode else "postgresql"
+        return f"{driver}://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+
+
+class JWTSettings(DefaultSettings):
+    """JWT configuration"""
+
+    SECRET_KEY: str = "1234567890"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 120
 
-    class Config:
-        env_file = ".env"
 
+class AppSettings(DefaultSettings):
+    """General application configuration"""
 
-class AppSettings(BaseSettings):
-    """Configuración general de la aplicación"""
     ENVIRONMENT: str = "dev"
-    LOG_DIR_DEV: str = "logs"
-    LOG_DIR_EXTERNAL: str = "/var/log/app/logs"
+    LOG_DIR_DEV: Path = Field(default_factory=lambda: project_root / "logs")
+    LOG_DIR_PRD: Path = Path("/var/log/app/logs")
 
-    class Config:
-        env_file = ".env"
-
-    def get_log_dir(self) -> str:
-        """Retorna directorio de logs según entorno"""
-        return self.LOG_DIR_DEV if self.ENVIRONMENT == "dev" else self.LOG_DIR_EXTERNAL
+    def get_log_dir(self) -> Path:
+        """Returns log directory based on environment"""
+        return self.LOG_DIR_DEV if self.ENVIRONMENT == "dev" else self.LOG_DIR_PRD
 
 
-# Instancias globales de configuración
+class EmailSettings(DefaultSettings):
+    SMTP_HOST: str = ""
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    EMAIL_OPERATIONS: str = ""
+    SMTP_USE_TLS: bool = True
+    SMTP_PORT_TLS: int = 587
+    SMTP_USE_SSL: bool = False
+    SMTP_PORT_SSL: int = 465
+
+
+# Global configuration instances
 db_settings = DatabaseSettings()
 jwt_settings = JWTSettings()
 app_settings = AppSettings()
+email_settings = EmailSettings()

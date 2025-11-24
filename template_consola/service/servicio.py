@@ -1,204 +1,232 @@
 """
-Servicio Principal
+Main Service
 
-Orquesta la ejecución de los procesos batch de la consola.
-Maneja el ciclo de vida del servicio y coordina las tareas.
+Orchestrates the execution of console batch processes.
+Manages the service lifecycle and coordinates tasks.
 """
 
 import asyncio
-import logging
 from datetime import datetime
 import os
 
+# Centralized logger
+from config.logger import logger
+
 # Processes
-from processes.ejemplo_proceso import ejecutar_proceso_ejemplo
+from processes.ejemplo_proceso import execute_example_process
+from processes.proceso_a import execute_process_a
+from processes.proceso_b import execute_process_b
+from processes.proceso_c import execute_process_c
 
-# TODO: Descomentar cuando tengas repositorio_lib
-# from repositorio_lib.utils import reintentar_hasta_exito
-
-logger = logging.getLogger(__name__)
+# TODO: Uncomment when you have repositorio_lib
+# from repositorio_lib.utils import retry_until_success
 
 
-class Servicio:
+class Service:
     """
-    Servicio principal de la consola.
+    Main console service.
 
-    Maneja:
-    - Inicio y detención del servicio
-    - Ejecución periódica de procesos
-    - Manejo de errores y reintentos
+    Manages:
+    - Service start and stop
+    - Periodic process execution
+    - Error handling and retries
     """
 
     def __init__(self):
-        """Inicializa el servicio"""
+        """Initializes the service"""
         self.running = False
         self.task = None
 
-        # Configuración desde env
-        self.intervalo_minutos = int(os.getenv("MINUTOS_CONSOLA", "60"))
-        self.modo_continuo = os.getenv("ENABLE_CONTINUOUS_MODE", "true").lower() == "true"
-        self.max_reintentos = int(os.getenv("MAX_RETRIES", "3"))
+        # Configuration from env
+        self.interval_minutes = int(os.getenv("MINUTOS_CONSOLA", "60"))
+        self.continuous_mode = os.getenv("ENABLE_CONTINUOUS_MODE", "true").lower() == "true"
+        self.max_retries = int(os.getenv("MAX_RETRIES", "3"))
 
-        logger.info(f"Servicio configurado:")
-        logger.info(f"  - Intervalo: {self.intervalo_minutos} minutos")
-        logger.info(f"  - Modo continuo: {self.modo_continuo}")
-        logger.info(f"  - Max reintentos: {self.max_reintentos}")
+        logger.info(f"Service configured:")
+        logger.info(f"  - Interval: {self.interval_minutes} minutes")
+        logger.info(f"  - Continuous mode: {self.continuous_mode}")
+        logger.info(f"  - Max retries: {self.max_retries}")
 
-    async def iniciar_servicio(self):
+    async def start_service(self):
         """
-        Inicia el servicio y comienza la ejecución de procesos.
+        Starts the service and begins process execution.
         """
-        logger.info("🟢 Iniciando servicio...")
+        logger.info("🟢 Starting service...")
 
         self.running = True
 
-        # Iniciar tarea principal en background
+        # Start main task in background
         self.task = asyncio.create_task(self._run_loop())
 
-        logger.info("✅ Servicio iniciado exitosamente")
+        logger.info("✅ Service started successfully")
 
-    async def detener_servicio(self):
+    async def stop_service(self):
         """
-        Detiene el servicio de forma graceful.
+        Stops the service gracefully.
         """
-        logger.info("🔴 Deteniendo servicio...")
+        logger.info("🔴 Stopping service...")
 
         self.running = False
 
-        # Esperar a que termine la tarea actual
+        # Wait for current task to finish
         if self.task:
             try:
                 await asyncio.wait_for(self.task, timeout=60)
-                logger.info("✅ Tarea actual completada")
+                logger.info("✅ Current task completed")
             except asyncio.TimeoutError:
-                logger.warning("⚠️ Timeout esperando tarea, cancelando...")
+                logger.warning("⚠️ Timeout waiting for task, canceling...")
                 self.task.cancel()
                 try:
                     await self.task
                 except asyncio.CancelledError:
                     pass
 
-        logger.info("✅ Servicio detenido")
+        logger.info("✅ Service stopped")
 
     async def _run_loop(self):
         """
-        Loop principal del servicio.
+        Main service loop.
 
-        Ejecuta los procesos batch periódicamente según configuración.
+        Executes batch processes periodically according to configuration.
         """
-        ciclo = 1
+        cycle = 1
 
         while self.running:
             try:
                 logger.info(f"{'='*60}")
-                logger.info(f"Iniciando ciclo #{ciclo} - {datetime.now()}")
+                logger.info(f"Starting cycle #{cycle} - {datetime.now()}")
                 logger.info(f"{'='*60}")
 
-                # Ejecutar ciclo de procesos
-                await self.ejecutar_ciclo()
+                # Execute process cycle
+                await self.execute_cycle()
 
-                logger.info(f"✅ Ciclo #{ciclo} completado exitosamente")
+                logger.info(f"✅ Cycle #{cycle} completed successfully")
 
-                # Si no es modo continuo, salir después del primer ciclo
-                if not self.modo_continuo:
-                    logger.info("Modo de ejecución única - finalizando")
+                # If not continuous mode, exit after first cycle
+                if not self.continuous_mode:
+                    logger.info("Single execution mode - terminating")
                     self.running = False
                     break
 
-                # Esperar antes del siguiente ciclo
+                # Wait before next cycle
                 if self.running:
                     logger.info(
-                        f"⏳ Esperando {self.intervalo_minutos} minutos "
-                        f"hasta el siguiente ciclo..."
+                        f"⏳ Waiting {self.interval_minutes} minutes "
+                        f"until next cycle..."
                     )
-                    await asyncio.sleep(self.intervalo_minutos * 60)
+                    await asyncio.sleep(self.interval_minutes * 60)
 
-                ciclo += 1
+                cycle += 1
 
             except asyncio.CancelledError:
-                logger.info("⚠️ Tarea cancelada")
+                logger.info("⚠️ Task canceled")
                 break
             except Exception as e:
                 logger.error(
-                    f"❌ Error en ciclo #{ciclo}: {e}",
+                    f"❌ Error in cycle #{cycle}: {e}",
                     exc_info=True
                 )
 
-                # Esperar antes de reintentar
+                # Wait before retrying
                 if self.running:
-                    logger.info("⏳ Esperando 5 minutos antes de reintentar...")
-                    await asyncio.sleep(300)  # 5 minutos
+                    logger.info("⏳ Waiting 5 minutes before retrying...")
+                    await asyncio.sleep(300)  # 5 minutes
 
-    async def ejecutar_ciclo(self):
+    async def execute_cycle(self):
         """
-        Ejecuta un ciclo completo de procesos batch.
+        Executes a complete batch process cycle.
 
-        Personaliza este método para agregar tus procesos específicos.
+        Customize this method to add your specific processes.
         """
-        logger.info("🔄 Ejecutando procesos del ciclo...")
+        logger.info("🔄 Executing cycle processes...")
 
         try:
-            # TODO: Agregar tus procesos aquí
+            # TODO: Add your processes here
 
-            # Ejemplo 1: Proceso simple
-            await self._ejecutar_con_reintentos(
-                ejecutar_proceso_ejemplo,
-                "Proceso Ejemplo"
+            # ====================================================================
+            # OPTION 1: PROCESSES IN SEQUENCE (one after the other)
+            # ====================================================================
+            # await self._execute_with_retries(execute_example_process, "Example Process")
+            # await self._execute_with_retries(execute_process_a, "Process A")
+            # await self._execute_with_retries(execute_process_b, "Process B")
+            # await self._execute_with_retries(execute_process_c, "Process C")
+
+            # ====================================================================
+            # OPTION 2: PROCESSES IN PARALLEL (all at the same time)
+            # ====================================================================
+            logger.info("⚡ Executing 3 processes in parallel...")
+
+            results = await asyncio.gather(
+                self._execute_with_retries(execute_process_a, "Process A"),
+                self._execute_with_retries(execute_process_b, "Process B"),
+                self._execute_with_retries(execute_process_c, "Process C"),
+                return_exceptions=True  # Don't stop if one fails
             )
 
-            # Ejemplo 2: Múltiples procesos en secuencia
-            # await self._ejecutar_con_reintentos(proceso_1, "Proceso 1")
-            # await self._ejecutar_con_reintentos(proceso_2, "Proceso 2")
-            # await self._ejecutar_con_reintentos(proceso_3, "Proceso 3")
+            # Check results
+            errors = [r for r in results if isinstance(r, Exception)]
+            if errors:
+                logger.warning(f"⚠️ {len(errors)} process(es) failed")
+                for error in errors:
+                    logger.error(f"   - {error}")
+            else:
+                logger.info("✅ All parallel processes completed successfully")
 
-            # Ejemplo 3: Procesos en paralelo
+            # ====================================================================
+            # OPTION 3: COMBINATION (some parallel, others sequential)
+            # ====================================================================
+            # # First execute example process (sequential)
+            # await self._execute_with_retries(execute_example_process, "Example Process")
+            #
+            # # Then execute A, B and C in parallel
             # await asyncio.gather(
-            #     self._ejecutar_con_reintentos(proceso_a, "Proceso A"),
-            #     self._ejecutar_con_reintentos(proceso_b, "Proceso B"),
+            #     self._execute_with_retries(execute_process_a, "Process A"),
+            #     self._execute_with_retries(execute_process_b, "Process B"),
+            #     self._execute_with_retries(execute_process_c, "Process C"),
             #     return_exceptions=True
             # )
 
-            logger.info("✅ Todos los procesos completados")
+            logger.info("✅ All processes completed")
 
         except Exception as e:
-            logger.error(f"❌ Error ejecutando ciclo: {e}", exc_info=True)
+            logger.error(f"❌ Error executing cycle: {e}", exc_info=True)
             raise
 
-    async def _ejecutar_con_reintentos(self, funcion, nombre: str):
+    async def _execute_with_retries(self, function, name: str):
         """
-        Ejecuta una función con reintentos automáticos en caso de error.
+        Executes a function with automatic retries on error.
 
         Args:
-            funcion: Función async a ejecutar
-            nombre: Nombre descriptivo del proceso
+            function: Async function to execute
+            name: Descriptive process name
         """
-        for intento in range(1, self.max_reintentos + 1):
+        for attempt in range(1, self.max_retries + 1):
             try:
-                logger.info(f"▶️ Ejecutando: {nombre} (intento {intento}/{self.max_reintentos})")
-                await funcion()
-                logger.info(f"✅ {nombre} completado exitosamente")
+                logger.info(f"▶️ Executing: {name} (attempt {attempt}/{self.max_retries})")
+                await function()
+                logger.info(f"✅ {name} completed successfully")
                 return
 
             except Exception as e:
                 logger.error(
-                    f"❌ Error en {nombre} (intento {intento}/{self.max_reintentos}): {e}",
+                    f"❌ Error in {name} (attempt {attempt}/{self.max_retries}): {e}",
                     exc_info=True
                 )
 
-                if intento < self.max_reintentos:
-                    # Backoff exponencial: 5s, 10s, 20s
-                    delay = 5 * (2 ** (intento - 1))
-                    logger.info(f"⏳ Reintentando en {delay} segundos...")
+                if attempt < self.max_retries:
+                    # Exponential backoff: 5s, 10s, 20s
+                    delay = 5 * (2 ** (attempt - 1))
+                    logger.info(f"⏳ Retrying in {delay} seconds...")
                     await asyncio.sleep(delay)
                 else:
-                    logger.error(f"❌ {nombre} falló después de {self.max_reintentos} intentos")
+                    logger.error(f"❌ {name} failed after {self.max_retries} attempts")
                     raise
 
 
-# TODO: Agregar funcionalidades adicionales según necesidad
-# Ejemplos:
-# - Health check endpoint (HTTP server simple)
-# - Métricas de ejecución
-# - Notificaciones por email/slack en caso de error
-# - Pausar/reanudar servicio dinámicamente
-# - Ajustar intervalo dinámicamente
+# TODO: Add additional functionality as needed
+# Examples:
+# - Health check endpoint (simple HTTP server)
+# - Execution metrics
+# - Email/slack notifications on error
+# - Pause/resume service dynamically
+# - Adjust interval dynamically

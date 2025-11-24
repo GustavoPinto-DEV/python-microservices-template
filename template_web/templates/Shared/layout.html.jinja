@@ -29,24 +29,24 @@
       </button>
       <div class="collapse navbar-collapse" id="navbarSupportedContent">
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          {% if user_profile == "Admin" %}
+          {% if user_profile == "Administrador" %}
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" id="navbarDropdown" role="button" data-bs-toggle="dropdown"
               aria-expanded="false">
-              <strong>Administration</strong>
+              <strong>Settings</strong>
             </a>
             <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
               <li>
-                <a class="dropdown-item" href="/maintenance/services"><strong>Services</strong></a>
+                <a class="dropdown-item" href="/mantenedor/servicios"><strong>Services</strong></a>
               </li>
               <li>
-                <a class="dropdown-item" href="/maintenance/users"><strong>Users</strong></a>
+                <a class="dropdown-item" href="/mantenedor/usuarios"><strong>Users</strong></a>
               </li>
               <li>
-                <a class="dropdown-item" href="/maintenance/items"><strong>Items</strong></a>
+                <a class="dropdown-item" href="/mantenedor/concesionarias"><strong>Dealerships</strong></a>
               </li>
               <li>
-                <a class="dropdown-item" href="/maintenance/settings"><strong>Settings</strong></a>
+                <a class="dropdown-item" href="/mantenedor/parametros"><strong>Parameters</strong></a>
               </li>
             </ul>
           </li>
@@ -54,14 +54,14 @@
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" id="navbarDropdown" role="button" data-bs-toggle="dropdown"
               aria-expanded="false">
-              <strong>Audit Logs</strong>
+              <strong>Logs</strong>
             </a>
             <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
               <li>
-                <a class="dropdown-item" href="/audit-log/api"><strong>API Audit Log</strong></a>
+                <a class="dropdown-item" href="/bitacora/apisutyp"><strong>API SUTyp</strong></a>
               </li>
               <li>
-                <a class="dropdown-item" href="/audit-log/processes"><strong>Process Audit Log</strong></a>
+                <a class="dropdown-item" href="/bitacora/procesosftp"><strong>FTP Processes</strong></a>
               </li>
             </ul>
           </li>

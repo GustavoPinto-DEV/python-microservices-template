@@ -1,8 +1,8 @@
 """
-Dependencies de Autenticación
+Authentication Dependencies
 
-Maneja la autenticación y autorización usando JWT.
-Proporciona dependencies de FastAPI para proteger endpoints.
+Handles authentication and authorization using JWT.
+Provides FastAPI dependencies to protect endpoints.
 """
 
 from fastapi import Depends, HTTPException, status
@@ -15,7 +15,7 @@ import os
 # Security scheme
 security = HTTPBearer()
 
-# Configuración JWT (debe coincidir con .env)
+# JWT configuration (must match .env)
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-this")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "120"))
@@ -23,14 +23,14 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "120"
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """
-    Crea un token JWT.
+    Creates a JWT token.
 
     Args:
-        data: Datos a codificar en el token
-        expires_delta: Tiempo de expiración opcional
+        data: Data to encode in the token
+        expires_delta: Optional expiration time
 
     Returns:
-        Token JWT codificado
+        Encoded JWT token
     """
     to_encode = data.copy()
 
@@ -47,16 +47,16 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
 def decode_access_token(token: str) -> dict:
     """
-    Decodifica y valida un token JWT.
+    Decodes and validates a JWT token.
 
     Args:
-        token: Token JWT a decodificar
+        token: JWT token to decode
 
     Returns:
-        Payload del token
+        Token payload
 
     Raises:
-        JWTError: Si el token es inválido o expiró
+        JWTError: If token is invalid or expired
     """
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -64,7 +64,7 @@ def decode_access_token(token: str) -> dict:
     except JWTError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido o expirado",
+            detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"}
         ) from e
 
@@ -73,27 +73,27 @@ async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ) -> dict:
     """
-    Dependency para obtener el usuario actual desde el token JWT.
+    Dependency to get current user from JWT token.
 
-    Se usa como dependency en endpoints que requieren autenticación:
+    Used as a dependency in endpoints requiring authentication:
 
     @router.get("/protected", dependencies=[Depends(get_current_user)])
     async def protected_endpoint():
         ...
 
     Args:
-        credentials: Credenciales HTTP Bearer (token)
+        credentials: HTTP Bearer credentials (token)
 
     Returns:
-        Diccionario con datos del usuario del token
+        Dictionary with user data from token
 
     Raises:
-        HTTPException 401: Si el token es inválido o falta
+        HTTPException 401: If token is invalid or missing
     """
     if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="No se proporcionó token de autenticación",
+            detail="No authentication token provided",
             headers={"WWW-Authenticate": "Bearer"}
         )
 
@@ -101,12 +101,12 @@ async def get_current_user(
         token = credentials.credentials
         payload = decode_access_token(token)
 
-        # Validar que el token tenga los campos requeridos
+        # Validate that token has required fields
         username = payload.get("sub")
         if username is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token inválido: falta información de usuario",
+                detail="Invalid token: missing user information",
                 headers={"WWW-Authenticate": "Bearer"}
             )
 
@@ -121,7 +121,7 @@ async def get_current_user(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Error al validar token",
+            detail="Error validating token",
             headers={"WWW-Authenticate": "Bearer"}
         ) from e
 
@@ -130,25 +130,25 @@ async def get_current_active_user(
     current_user: dict = Depends(get_current_user)
 ) -> dict:
     """
-    Dependency para obtener usuario actual y validar que esté activo.
+    Dependency to get current user and validate they are active.
 
-    Extiende get_current_user con validación adicional de estado.
+    Extends get_current_user with additional status validation.
 
     Args:
-        current_user: Usuario del token (inyectado)
+        current_user: User from token (injected)
 
     Returns:
-        Usuario si está activo
+        User if active
 
     Raises:
-        HTTPException 403: Si el usuario está inactivo
+        HTTPException 403: If user is inactive
     """
-    # TODO: Verificar en base de datos si el usuario está activo
+    # TODO: Verify in database if user is active
     # user_db = await repository.get_user(current_user["username"])
     # if not user_db.is_active:
     #     raise HTTPException(
     #         status_code=status.HTTP_403_FORBIDDEN,
-    #         detail="Usuario inactivo"
+    #         detail="Inactive user"
     #     )
 
     return current_user
@@ -156,33 +156,33 @@ async def get_current_active_user(
 
 def require_role(required_role: str):
     """
-    Factory para crear dependency que valida rol del usuario.
+    Factory to create dependency that validates user role.
 
-    Uso:
+    Usage:
         @router.get("/admin", dependencies=[Depends(require_role("admin"))])
         async def admin_endpoint():
             ...
 
     Args:
-        required_role: Rol requerido
+        required_role: Required role
 
     Returns:
         Dependency function
     """
     async def role_checker(current_user: dict = Depends(get_current_user)):
-        # TODO: Implementar verificación de rol desde DB
+        # TODO: Implement role verification from DB
         # user_role = await repository.get_user_role(current_user["username"])
         # if user_role != required_role:
         #     raise HTTPException(
         #         status_code=status.HTTP_403_FORBIDDEN,
-        #         detail=f"Se requiere rol: {required_role}"
+        #         detail=f"Required role: {required_role}"
         #     )
 
         user_role = current_user.get("role", "user")
         if user_role != required_role:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Acceso denegado. Se requiere rol: {required_role}"
+                detail=f"Access denied. Required role: {required_role}"
             )
 
         return current_user
@@ -190,9 +190,9 @@ def require_role(required_role: str):
     return role_checker
 
 
-# TODO: Agregar más dependencies de autorización según necesidad
-# Ejemplos:
-# - Validar permisos específicos
-# - Validar propiedad de recursos
-# - Rate limiting por usuario
-# - Validar subscripción activa
+# TODO: Add more authorization dependencies as needed
+# Examples:
+# - Validate specific permissions
+# - Validate resource ownership
+# - Rate limiting per user
+# - Validate active subscription

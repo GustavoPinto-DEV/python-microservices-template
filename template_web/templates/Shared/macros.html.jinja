@@ -1,5 +1,5 @@
 {#
-Reusable Jinja2 Macros for Web Applications
+Reusable Jinja2 Macros for SUTyp Web Application
 
 Usage in templates:
 {% from 'Shared/macros.html.jinja' import datatable_styles, page_header %}
@@ -23,7 +23,7 @@ DataTables: CSS and JS Imports
 <script src="/static/lib/DataTables/Buttons-2.2.3/js/buttons.html5.js"></script>
 <script src="/static/lib/DataTables/Buttons-2.2.3/js/buttons.dataTables.js"></script>
 <script src="/static/lib/DataTables/Buttons-2.2.3/js/buttons.bootstrap.js"></script>
-{# Generic helper for DataTables server-side processing #}
+{# Generic helper for server-side DataTables #}
 <script src="/static/js/datatable-serverside.js"></script>
 {%- endmacro %}
 
@@ -194,7 +194,7 @@ Detail Page Components (Readonly Fields)
     {% if back_url %}
     <a href="{{ back_url }}" class="btn btn-rojo">{{ back_button_text }}</a>
     {% else %}
-    <button class="btn btn-rojo" id="volver">{{ back_button_text }}</button>
+    <button class="btn btn-rojo" id="back">{{ back_button_text }}</button>
     {% endif %}
   </div>
 </div>

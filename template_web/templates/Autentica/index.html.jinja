@@ -5,7 +5,7 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Web Template - Inicio de Sesión</title>
+  <title>Web Template - Login</title>
 
   {# Favicon #}
   <link rel="shortcut icon" href="/static/favicon.ico" />
@@ -29,26 +29,26 @@
             <div style="width: 100%; text-align: center">
               <img src="/static/img/logo.png" style="max-width: 100%" alt="Logo" />
             </div>
-            {# Título #}
+            {# Title #}
             <div style="width: 100%; text-align: center">
               <h2 class="h3 text-center my-4" style="color: #454545; font-weight: 700 !important">
-                Administración Web Template
+                Web Template Administration
               </h2>
             </div>
-            {# Formulario de Login #}
+            {# Login Form #}
             <form style="width: 100%; margin: auto" action="{{ url_for('login_user') }}" method="post" id="loginform"
-              class="auto-loader" data-loader-text="Iniciando sesión...">
+              class="auto-loader" data-loader-text="Logging in...">
               <div class="form-group">
-                <label for="usuario">Usuario</label>
+                <label for="usuario">Username</label>
                 <input type="text" id="usuario" name="usuario" class="form-control w-100"
                   value="{{ usuario if usuario is not none else '' }}" />
               </div>
               <div class="form-group">
-                <label for="contrasena">Contraseña</label>
+                <label for="contrasena">Password</label>
                 <input type="password" id="contrasena" name="contrasena" class="form-control w-100" />
               </div>
               <button type="submit" class="btn btn-primario form-control">
-                Entrar
+                Log In
               </button>
             </form>
           </div>
@@ -69,13 +69,13 @@
   {# Login Error Message Handler #}
   <script>
     $(document).ready(function () {
-      var mostrarMensaje = {{ submit | tojson }};
-      var mensajeTexto = {{ mensaje | tojson }};
-      if (mostrarMensaje) {
+      var showMessage = {{ submit | tojson }};
+      var messageText = {{ mensaje | tojson }};
+      if (showMessage) {
         Swal.fire({
           icon: "warning",
-          title: "Atención",
-          text: mensajeTexto,
+          title: "Attention",
+          text: messageText,
         });
       }
     });

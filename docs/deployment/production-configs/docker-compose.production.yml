@@ -1,0 +1,663 @@
+# ============================================================================
+# Docker Compose - Configuración de Producción
+# ============================================================================
+#
+# Este archivo define la infraestructura completa del proyecto con:
+# - Artefactos compilados (sin hot-reload)
+# - Redes internas segregadas por capa
+# - Health checks en todos los servicios
+# - Configuración de seguridad
+# - Volúmenes persistentes
+# - Restart policies apropiadas
+#
+# Uso:
+#   docker-compose -f docker-compose.production.yml up -d
+#   docker-compose -f docker-compose.production.yml down
+#
+# ============================================================================
+
+version: '3.9'
+
+# ============================================================================
+# REDES
+# ============================================================================
+# Segregación de red por capas para seguridad
+networks:
+  # Red frontal: nginx <-> servicios web/api
+  frontend:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+
+  # Red backend: servicios <-> bases de datos
+  backend:
+    driver: bridge
+    internal: true  # No acceso a internet
+    ipam:
+      config:
+        - subnet: 172.21.0.0/24
+
+  # Red de cache: servicios <-> redis
+  cache:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.22.0.0/24
+
+# ============================================================================
+# VOLÚMENES
+# ============================================================================
+# Volúmenes nombrados para persistencia de datos
+volumes:
+  # Base de datos PostgreSQL
+  postgres_data:
+    driver: local
+
+  # Redis para cache/sessions
+  redis_data:
+    driver: local
+
+  # Logs centralizados
+  app_logs:
+    driver: local
+
+  # Backups de BD (opcional)
+  postgres_backups:
+    driver: local
+
+# ============================================================================
+# SERVICIOS
+# ============================================================================
+services:
+
+  # ==========================================================================
+  # CAPA DE DATOS
+  # ==========================================================================
+
+  # --------------------------------------------------------------------------
+  # PostgreSQL - Base de datos principal
+  # --------------------------------------------------------------------------
+  postgres:
+    image: postgres:15-alpine
+    container_name: ${PROJECT_NAME:-myproject}_postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
+      PGDATA: /var/lib/postgresql/data/pgdata
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - postgres_backups:/backups
+      # Script de inicialización (opcional)
+      # - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+    networks:
+      - backend
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+    # Configuración de recursos
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+    # Configuración de seguridad
+    security_opt:
+      - no-new-privileges:true
+
+    # No exponer puerto en producción (usar solo red interna)
+    # ports:
+    #   - "5432:5432"
+
+  # --------------------------------------------------------------------------
+  # Redis - Cache y sessions
+  # --------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: ${PROJECT_NAME:-myproject}_redis
+    restart: unless-stopped
+
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD}
+
+    volumes:
+      - redis_data:/data
+
+    networks:
+      - cache
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+    security_opt:
+      - no-new-privileges:true
+
+  # ==========================================================================
+  # CAPA DE APLICACIÓN
+  # ==========================================================================
+
+  # --------------------------------------------------------------------------
+  # API REST - FastAPI
+  # --------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: docker/api/Dockerfile.production
+      args:
+        PYTHON_VERSION: 3.12
+
+    container_name: ${PROJECT_NAME:-myproject}_api
+    restart: unless-stopped
+
+    environment:
+      # App settings
+      ENVIRONMENT: production
+
+      # Database (usar secrets en producción real)
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      POOL_SIZE: 20
+      MAX_OVERFLOW: 40
+
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+      # JWT
+      SECRET_KEY: ${JWT_SECRET_KEY}
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 120
+
+      # Logging
+      LOG_DIR_PRD: /var/log/app/logs
+
+      # Workers (ajustar según CPUs)
+      WORKERS: ${API_WORKERS:-4}
+
+    volumes:
+      - app_logs:/var/log/app/logs:rw
+
+    networks:
+      - frontend
+      - backend
+      - cache
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+      # Replicas para alta disponibilidad (requiere orquestador)
+      # replicas: 3
+
+    security_opt:
+      - no-new-privileges:true
+
+    # Puerto interno (no exponer directamente)
+    expose:
+      - "8000"
+
+  # --------------------------------------------------------------------------
+  # Web Application - FastAPI + Jinja2
+  # --------------------------------------------------------------------------
+  web:
+    build:
+      context: .
+      dockerfile: docker/web/Dockerfile.production
+      args:
+        PYTHON_VERSION: 3.12
+
+    container_name: ${PROJECT_NAME:-myproject}_web
+    restart: unless-stopped
+
+    environment:
+      ENVIRONMENT: production
+
+      # Database
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      # Redis para sessions
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+      # JWT para autenticación
+      SECRET_KEY: ${JWT_SECRET_KEY}
+      ALGORITHM: HS256
+
+      # Logging
+      LOG_DIR_PRD: /var/log/app/logs
+
+    volumes:
+      - app_logs:/var/log/app/logs:rw
+
+    networks:
+      - frontend
+      - backend
+      - cache
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+    security_opt:
+      - no-new-privileges:true
+
+    expose:
+      - "8000"
+
+  # --------------------------------------------------------------------------
+  # Worker de Consola - Procesos batch
+  # --------------------------------------------------------------------------
+  worker:
+    build:
+      context: .
+      dockerfile: docker/consola/Dockerfile.production
+      args:
+        PYTHON_VERSION: 3.12
+
+    container_name: ${PROJECT_NAME:-myproject}_worker
+    restart: unless-stopped
+
+    environment:
+      ENVIRONMENT: production
+
+      # Database
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+      # Configuración de worker
+      MINUTOS_CONSOLA: ${WORKER_INTERVAL:-60}
+      ENABLE_CONTINUOUS_MODE: ${WORKER_CONTINUOUS:-true}
+
+      # Logging
+      LOG_DIR_PRD: /var/log/app/logs
+
+    volumes:
+      - app_logs:/var/log/app/logs:rw
+      # Volumen para archivos procesados (si aplica)
+      # - worker_files:/app/files
+
+    networks:
+      - backend
+      - cache
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    # Workers no tienen healthcheck HTTP, usar command check
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "python"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+      # Múltiples workers si es necesario
+      # replicas: 2
+
+    security_opt:
+      - no-new-privileges:true
+
+  # --------------------------------------------------------------------------
+  # Celery Worker (opcional - si usas Celery)
+  # --------------------------------------------------------------------------
+  celery_worker:
+    build:
+      context: .
+      dockerfile: docker/api/Dockerfile.production
+      args:
+        PYTHON_VERSION: 3.12
+
+    container_name: ${PROJECT_NAME:-myproject}_celery_worker
+    restart: unless-stopped
+
+    command: celery -A config.celery_config worker --loglevel=info --concurrency=4
+
+    environment:
+      ENVIRONMENT: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      LOG_DIR_PRD: /var/log/app/logs
+
+    volumes:
+      - app_logs:/var/log/app/logs:rw
+
+    networks:
+      - backend
+      - cache
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+    security_opt:
+      - no-new-privileges:true
+
+    # Comentar si no usas Celery
+    profiles:
+      - celery
+
+  # --------------------------------------------------------------------------
+  # Celery Beat (opcional - scheduler para Celery)
+  # --------------------------------------------------------------------------
+  celery_beat:
+    build:
+      context: .
+      dockerfile: docker/api/Dockerfile.production
+      args:
+        PYTHON_VERSION: 3.12
+
+    container_name: ${PROJECT_NAME:-myproject}_celery_beat
+    restart: unless-stopped
+
+    command: celery -A config.celery_config beat --loglevel=info
+
+    environment:
+      ENVIRONMENT: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      LOG_DIR_PRD: /var/log/app/logs
+
+    volumes:
+      - app_logs:/var/log/app/logs:rw
+
+    networks:
+      - backend
+      - cache
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+    security_opt:
+      - no-new-privileges:true
+
+    # Comentar si no usas Celery
+    profiles:
+      - celery
+
+  # ==========================================================================
+  # CAPA DE PROXY/BALANCEO
+  # ==========================================================================
+
+  # --------------------------------------------------------------------------
+  # Nginx - Reverse proxy y balanceador de carga
+  # --------------------------------------------------------------------------
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: ${PROJECT_NAME:-myproject}_nginx
+    restart: unless-stopped
+
+    ports:
+      # HTTP
+      - "${NGINX_HTTP_PORT:-80}:80"
+      # HTTPS
+      - "${NGINX_HTTPS_PORT:-443}:443"
+
+    volumes:
+      # Configuración de Nginx
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+
+      # Certificados SSL (usar Let's Encrypt en producción)
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+
+      # Archivos estáticos (si se sirven desde Nginx)
+      # - ./static:/usr/share/nginx/html/static:ro
+
+      # Logs de Nginx
+      - app_logs:/var/log/nginx:rw
+
+    networks:
+      - frontend
+
+    depends_on:
+      - api
+      - web
+
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+    security_opt:
+      - no-new-privileges:true
+
+  # ==========================================================================
+  # SERVICIOS DE MONITOREO (opcional)
+  # ==========================================================================
+
+  # --------------------------------------------------------------------------
+  # Prometheus - Métricas
+  # --------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ${PROJECT_NAME:-myproject}_prometheus
+    restart: unless-stopped
+
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+
+    networks:
+      - frontend
+      - backend
+
+    expose:
+      - "9090"
+
+    # Exponer solo en desarrollo
+    # ports:
+    #   - "9090:9090"
+
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+    security_opt:
+      - no-new-privileges:true
+
+    profiles:
+      - monitoring
+
+  # --------------------------------------------------------------------------
+  # Grafana - Dashboards
+  # --------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ${PROJECT_NAME:-myproject}_grafana
+    restart: unless-stopped
+
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_INSTALL_PLUGINS: ""
+
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./docker/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+
+    networks:
+      - frontend
+
+    depends_on:
+      - prometheus
+
+    expose:
+      - "3000"
+
+    # Exponer solo en desarrollo
+    # ports:
+    #   - "3000:3000"
+
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+    security_opt:
+      - no-new-privileges:true
+
+    profiles:
+      - monitoring
+
+# ============================================================================
+# VOLÚMENES ADICIONALES (para servicios opcionales)
+# ============================================================================
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local

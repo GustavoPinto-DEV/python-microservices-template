@@ -1,0 +1,157 @@
+# ============================================================================
+# Multi-stage Dockerfile para Producción
+# ============================================================================
+#
+# Este Dockerfile utiliza multi-stage builds para:
+# - Reducir tamaño de imagen final
+# - Compilar dependencias en stage separado
+# - No incluir herramientas de build en imagen final
+# - Ejecutar como usuario no-root
+#
+# Uso:
+#   Copiar este archivo a docker/api/Dockerfile.production (o web, consola)
+#   Ajustar según las necesidades específicas del servicio
+#
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# STAGE 1: Builder - Compilación de dependencias
+# ----------------------------------------------------------------------------
+FROM python:3.12-slim as builder
+
+# Argumentos de build
+ARG PYTHON_VERSION=3.12
+
+# Variables de entorno para build
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_DEFAULT_TIMEOUT=100
+
+# Instalar dependencias de compilación
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    make \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Crear directorio de trabajo
+WORKDIR /build
+
+# Copiar solo archivos de dependencias primero (cache layer)
+COPY template_api/requirements.txt ./api_requirements.txt
+# Si usas repositorio compartido:
+COPY template_repositorio/requirements.txt ./repo_requirements.txt
+
+# Crear virtualenv y instalar dependencias
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Instalar repositorio_lib primero
+COPY template_repositorio/ /build/template_repositorio/
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install -e /build/template_repositorio/
+
+# Instalar dependencias del servicio
+RUN pip install -r api_requirements.txt
+
+# ----------------------------------------------------------------------------
+# STAGE 2: Runtime - Imagen final mínima
+# ----------------------------------------------------------------------------
+FROM python:3.12-slim as runtime
+
+# Metadata
+LABEL maintainer="your-team@company.com"
+LABEL description="Production API service"
+LABEL version="1.0.0"
+
+# Variables de entorno
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/opt/venv/bin:$PATH" \
+    PYTHONPATH="/app:$PYTHONPATH"
+
+# Instalar solo dependencias de runtime (no herramientas de build)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Crear usuario no-root para seguridad
+RUN groupadd -r appuser && \
+    useradd -r -g appuser -u 1001 -m -s /sbin/nologin appuser
+
+# Crear directorios necesarios
+RUN mkdir -p /app /var/log/app/logs && \
+    chown -R appuser:appuser /app /var/log/app
+
+# Copiar virtualenv desde builder
+COPY --from=builder --chown=appuser:appuser /opt/venv /opt/venv
+
+# Copiar repositorio compartido instalado
+COPY --from=builder --chown=appuser:appuser /build/template_repositorio /app/template_repositorio
+
+# Establecer directorio de trabajo
+WORKDIR /app
+
+# Copiar código de la aplicación (solo lo necesario)
+COPY --chown=appuser:appuser template_api/main.py ./
+COPY --chown=appuser:appuser template_api/config ./config/
+COPY --chown=appuser:appuser template_api/controller ./controller/
+COPY --chown=appuser:appuser template_api/dependencies ./dependencies/
+COPY --chown=appuser:appuser template_api/exception ./exception/
+COPY --chown=appuser:appuser template_api/middleware ./middleware/
+COPY --chown=appuser:appuser template_api/router ./router/
+COPY --chown=appuser:appuser template_api/schema ./schema/
+
+# Cambiar a usuario no-root
+USER appuser
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Exponer puerto
+EXPOSE 8000
+
+# Comando de inicio con Uvicorn optimizado para producción
+CMD ["uvicorn", "main:app", \
+     "--host", "0.0.0.0", \
+     "--port", "8000", \
+     "--workers", "4", \
+     "--loop", "uvloop", \
+     "--access-log", \
+     "--log-config", "/app/config/logging.json"]
+
+# Para desarrollo con hot-reload (comentar en producción):
+# CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+# ============================================================================
+# NOTAS DE CONFIGURACIÓN
+# ============================================================================
+#
+# 1. WORKERS: Ajustar según CPU disponible: (2 x cores) + 1
+#    Ejemplo: 4 cores -> 9 workers
+#
+# 2. Para template_web: Igual estructura pero servir static files
+#
+# 3. Para template_consola:
+#    CMD ["python", "main.py"]
+#    O con scheduler:
+#    CMD ["python", "main_scheduler.py"]
+#
+# 4. SEGURIDAD:
+#    - Ejecuta como usuario no-root (appuser)
+#    - No instala herramientas de compilación en runtime
+#    - Usa imagen slim de Python
+#    - Health check incluido
+#
+# 5. OPTIMIZACIONES:
+#    - Multi-stage build reduce tamaño ~50%
+#    - Cache de layers para builds rápidos
+#    - Solo copia archivos necesarios (no .git, __pycache__, etc.)
+#
+# ============================================================================

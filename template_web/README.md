@@ -1,301 +1,312 @@
 # Web Template - FastAPI + Jinja2
 
-Plantilla genérica para aplicaciones web con FastAPI y renderizado server-side usando Jinja2.
+Generic template for web applications with FastAPI and server-side rendering using Jinja2.
 
-## Características
+## Features
 
-- ✅ FastAPI + Jinja2 para renderizado server-side
-- ✅ Autenticación basada en cookies
-- ✅ Templates base reutilizables (layout, datatable, bitacora, detail)
-- ✅ Macros Jinja2 para componentes comunes
-- ✅ DataTables con server-side processing
-- ✅ Sistema de loader global
-- ✅ Archivos estáticos (CSS, JS, imágenes)
-- ✅ Formularios HTML con validación
-- ✅ Sesiones de usuario
-- ✅ Arquitectura MVC
+- ✅ FastAPI + Jinja2 for server-side rendering
+- ✅ Cookie-based authentication
+- ✅ Reusable base templates (layout, datatable, log, detail)
+- ✅ Jinja2 macros for common components
+- ✅ DataTables with server-side processing
+- ✅ Global loader system
+- ✅ Static files (CSS, JS, images)
+- ✅ HTML forms with validation
+- ✅ User sessions
+- ✅ MVC architecture
 - ✅ Docker ready
 
-## Estructura
+## Structure
 
 ```
 template_web/
 ├── main.py              # Entry point
 ├── requirements.txt
 ├── .env.example
-├── config/             # Configuración
-├── controller/         # Lógica de negocio
-├── dependencies/       # Auth y utilidades
-├── exception/          # Manejadores de errores
-├── router/             # Rutas
+├── config/             # Configuration
+├── controller/         # Business logic
+├── dependencies/       # Auth and utilities
+├── exception/          # Error handlers
+├── router/             # Routes
 ├── schema/             # Schemas
-├── static/             # CSS, JS, imágenes
+├── static/             # CSS, JS, images
 │   ├── css/
 │   ├── js/
-│   └── lib/           # Bibliotecas (jQuery, Bootstrap, DataTables, etc.)
-└── templates/          # Templates Jinja2
-    ├── Shared/         # Templates base y componentes reutilizables
-    │   ├── layout.html.jinja           # Layout principal
-    │   ├── datatable_base.html.jinja   # Base para tablas server-side
-    │   ├── bitacora_base.html.jinja    # Base para bitácoras con filtros
-    │   ├── detail_base.html.jinja      # Base para páginas de detalle
-    │   ├── macros.html.jinja           # Macros reutilizables
-    │   └── loader.html.jinja           # Componente de loader
-    ├── Home/           # Templates de inicio
+│   └── lib/           # Libraries (jQuery, Bootstrap, DataTables, etc.)
+└── templates/          # Jinja2 templates
+    ├── Shared/         # Base templates and reusable components
+    │   ├── layout.html.jinja           # Main layout
+    │   ├── datatable_base.html.jinja   # Base for server-side tables
+    │   ├── bitacora_base.html.jinja    # Base for logs with filters
+    │   ├── detail_base.html.jinja      # Base for detail pages
+    │   ├── macros.html.jinja           # Reusable macros
+    │   └── loader.html.jinja           # Loader component
+    ├── Home/           # Home templates
     │   └── index.html.jinja
-    ├── Autentica/      # Templates de autenticación
+    ├── Autentica/      # Authentication templates
     │   └── index.html.jinja
-    ├── Mantenedor/     # Templates de mantenedores (CRUD)
+    ├── Mantenedor/     # Maintainer templates (CRUD)
     │   └── ejemplo_datatable.html.jinja
-    └── Bitacora/       # Templates de bitácoras
+    └── Bitacora/       # Log templates
         ├── ejemplo_bitacora.html.jinja
         └── ejemplo_bitacora_detalle.html.jinja
 ```
 
-## Instalación
+## Installation
 
 ```bash
 py -3.12 -m venv venv
 venv\Scripts\activate  # Windows
 pip install -r requirements.txt
+
+# Install repositorio_lib (required dependency)
+pip install -e ../repositorio_lib
+
+# Configure environment variables (in repositorio_lib, NOT here)
+cd ../repositorio_lib/config
 cp .env.example .env
+# Edit .env with DB, JWT, SMTP, etc.
+cd ../../template_web
+
 uvicorn main:app --port 8000 --reload
 ```
 
-## Uso
+**⚠️ IMPORTANT:** Environment variables are configured in `repositorio_lib/config/.env`
 
-### 1. Templates Base
+## Usage
 
-El template incluye varios archivos base para diferentes tipos de páginas:
+### 1. Base Templates
 
-#### Layout Principal (`Shared/layout.html.jinja`)
+The template includes several base files for different page types:
 
-Layout base con navbar, footer y componentes globales:
+#### Main Layout (`Shared/layout.html.jinja`)
+
+Base layout with navbar, footer, and global components:
 
 ```jinja
 {% extends "Shared/layout.html.jinja" %}
 
 {% block content %}
-<h1>Mi Contenido</h1>
+<h1>My Content</h1>
 {% endblock %}
 
 {% block scripts %}
 <script>
-  // JavaScript específico de la página
+  // Page-specific JavaScript
 </script>
 {% endblock %}
 ```
 
 #### DataTable Base (`Shared/datatable_base.html.jinja`)
 
-Para páginas CRUD con tablas server-side:
+For CRUD pages with server-side tables:
 
 ```jinja
 {% extends "Shared/datatable_base.html.jinja" %}
 
-{% block page_title %}Usuarios{% endblock %}
-{% block create_button_text %}Crear Usuario{% endblock %}
+{% block page_title %}Users{% endblock %}
+{% block create_button_text %}Create User{% endblock %}
 {% block create_button_id %}btnCrear{% endblock %}
 
 {% block datatable_js %}
 <script>
-  // Usar helper InicializarTablaServerSide
+  // Use InicializarTablaServerSide helper
   InicializarTablaServerSide("#tabla", {
     url: "/api/usuarios/info",
     columns: [
       { data: "id", title: "ID", name: "id" },
-      { data: "nombre", title: "Nombre", name: "nombre" }
+      { data: "nombre", title: "Name", name: "nombre" }
     ]
   });
 </script>
 {% endblock %}
 ```
 
-Ver ejemplo completo en: `templates/Mantenedor/ejemplo_datatable.html.jinja`
+See complete example in: `templates/Mantenedor/ejemplo_datatable.html.jinja`
 
-#### Bitácora Base (`Shared/bitacora_base.html.jinja`)
+#### Log Base (`Shared/bitacora_base.html.jinja`)
 
-Para bitácoras con filtros personalizados:
+For logs with custom filters:
 
 ```jinja
 {% extends "Shared/bitacora_base.html.jinja" %}
 
-{% block page_title %}Mi Bitácora{% endblock %}
+{% block page_title %}My Log{% endblock %}
 
 {% block filtros %}
-<!-- Tus filtros personalizados aquí -->
+<!-- Your custom filters here -->
 {% endblock %}
 
 {% block datatable_js %}
 <script>
-  // Lógica de la tabla con filtros
+  // Table logic with filters
 </script>
 {% endblock %}
 ```
 
-Ver ejemplo completo en: `templates/Bitacora/ejemplo_bitacora.html.jinja`
+See complete example in: `templates/Bitacora/ejemplo_bitacora.html.jinja`
 
 #### Detail Base (`Shared/detail_base.html.jinja`)
 
-Para páginas de detalle con campos readonly:
+For detail pages with readonly fields:
 
 ```jinja
 {% extends "Shared/detail_base.html.jinja" %}
 {% from 'Shared/macros.html.jinja' import detail_field, detail_textarea %}
 
-{% block page_title %}Detalle{% endblock %}
+{% block page_title %}Detail{% endblock %}
 
 {% block detail_content %}
 {{ detail_field("id", "ID") }}
-{{ detail_textarea("descripcion", "Descripción", rows=3) }}
+{{ detail_textarea("descripcion", "Description", rows=3) }}
 {% endblock %}
 ```
 
-Ver ejemplo completo en: `templates/Bitacora/ejemplo_bitacora_detalle.html.jinja`
+See complete example in: `templates/Bitacora/ejemplo_bitacora_detalle.html.jinja`
 
-### 2. Macros Reutilizables
+### 2. Reusable Macros
 
-El archivo `Shared/macros.html.jinja` contiene macros para componentes comunes:
+The `Shared/macros.html.jinja` file contains macros for common components:
 
 ```jinja
 {% from 'Shared/macros.html.jinja' import datatable_styles, datatable_scripts, page_header %}
 
-{# Incluir estilos de DataTables #}
+{# Include DataTables styles #}
 {% block styles %}
 {{ datatable_styles() }}
 {% endblock %}
 
-{# Header con botón de crear #}
-{{ page_header(title="Mi Página", create_button_text="Crear", create_button_id="btnCrear") }}
+{# Header with create button #}
+{{ page_header(title="My Page", create_button_text="Create", create_button_id="btnCrear") }}
 
-{# Scripts de DataTables #}
+{# DataTables scripts #}
 {{ datatable_scripts() }}
 ```
 
-**Macros disponibles:**
-- `datatable_styles()` - Estilos CSS de DataTables
-- `datatable_scripts()` - Scripts JS de DataTables
-- `page_header(title, create_button_text, create_button_id)` - Header de página con botón
-- `datatable_container(table_id)` - Container para tabla
-- `form_input(field_id, label, value, placeholder, type, readonly)` - Input de formulario
+**Available macros:**
+- `datatable_styles()` - DataTables CSS styles
+- `datatable_scripts()` - DataTables JS scripts
+- `page_header(title, create_button_text, create_button_id)` - Page header with button
+- `datatable_container(table_id)` - Table container
+- `form_input(field_id, label, value, placeholder, type, readonly)` - Form input
 - `form_select(field_id, label, options, selected_value)` - Select dropdown
 - `form_toggle(field_id, label, checked)` - Toggle switch
-- `detail_field(field_id, label, col_class)` - Campo readonly para detalles
-- `detail_textarea(field_id, label, rows, col_class)` - Textarea readonly
+- `detail_field(field_id, label, col_class)` - Readonly field for details
+- `detail_textarea(field_id, label, rows, col_class)` - Readonly textarea
 - `alert(type, message, dismissible)` - Alert message
 - `badge(text, type)` - Badge component
-- `icon(name, size, color)` - Icono FontAwesome
+- `icon(name, size, color)` - FontAwesome icon
 
-### 3. DataTables con Server-Side Processing
+### 3. DataTables with Server-Side Processing
 
-El proyecto incluye un helper JavaScript (`static/js/datatable-serverside.js`) para facilitar la configuración:
+The project includes a JavaScript helper (`static/js/datatable-serverside.js`) to facilitate configuration:
 
 ```javascript
-// Inicializar tabla server-side
+// Initialize server-side table
 InicializarTablaServerSide("#tabla", {
   url: "/api/datos",
   columns: [
     { data: "id", title: "ID", name: "id" },
-    { data: "nombre", title: "Nombre", name: "nombre" }
+    { data: "nombre", title: "Name", name: "nombre" }
   ],
   defaultOrder: [[0, 'desc']],
   pageLength: 25
 });
 
-// Recargar tabla
+// Reload table
 RecargarTablaServerSide("#tabla");
 
-// Reiniciar tabla
+// Reset table
 ReiniciarDataTable("#tabla");
 ```
 
-**Funciones auxiliares disponibles:**
-- `RenderizarEstado(activo)` - Badge de estado (Activo/Inactivo)
-- `RenderizarBotonVer(funcion, parametro)` - Botón "Ver"
-- `RenderizarBotonEditar(funcion, row)` - Botón "Editar"
-- `RenderizarBotonToggle(funcion, row, activo)` - Botón toggle estado
-- `RenderizarBotonReiniciarClave(funcion, row)` - Botón reiniciar clave
-- `FormatearFechaHora(fecha)` - Formatear fecha/hora
-- `TruncarTexto(texto, maxLength)` - Truncar texto largo
+**Available helper functions:**
+- `RenderizarEstado(activo)` - Status badge (Active/Inactive)
+- `RenderizarBotonVer(funcion, parametro)` - "View" button
+- `RenderizarBotonEditar(funcion, row)` - "Edit" button
+- `RenderizarBotonToggle(funcion, row, activo)` - Toggle status button
+- `RenderizarBotonReiniciarClave(funcion, row)` - Reset password button
+- `FormatearFechaHora(fecha)` - Format date/time
+- `TruncarTexto(texto, maxLength)` - Truncate long text
 
-### 4. Sistema de Loader
+### 4. Loader System
 
-El loader global está incluido en el layout y se puede usar en cualquier página:
+The global loader is included in the layout and can be used on any page:
 
 ```javascript
-// Mostrar loader
-Loader.show('Cargando datos...');
+// Show loader
+Loader.show('Loading data...');
 
-// Ocultar loader
+// Hide loader
 Loader.hide();
 
-// Auto-loader en formularios (agregar clase)
-<form class="auto-loader" data-loader-text="Procesando...">
+// Auto-loader in forms (add class)
+<form class="auto-loader" data-loader-text="Processing...">
 ```
 
-### 5. Crear Nueva Página
+### 5. Create New Page
 
-**1. Template HTML** (`templates/MiModulo/mi_pagina.html.jinja`):
+**1. HTML Template** (`templates/MyModule/my_page.html.jinja`):
 ```jinja
 {% extends "Shared/layout.html.jinja" %}
 
 {% block content %}
-<h1>Mi Página</h1>
+<h1>My Page</h1>
 {% endblock %}
 
 {% block scripts %}
 <script>
-  // JavaScript específico
+  // Specific JavaScript
 </script>
 {% endblock %}
 ```
 
 **2. Router** (`router/v1Router.py`):
 ```python
-@router.get("/mi-pagina")
-async def mi_pagina(
+@router.get("/my-page")
+async def my_page(
     request: Request,
     user: dict = Depends(get_current_user_cookie)
 ):
     return templates.TemplateResponse(
-        "MiModulo/mi_pagina.html.jinja",
+        "MyModule/my_page.html.jinja",
         {
             "request": request,
-            "title": "Mi Página",
+            "title": "My Page",
             "user_name": user.get("nombre_completo"),
             "user_profile": user.get("perfil")
         }
     )
 ```
 
-### 6. Formularios con Validación
+### 6. Forms with Validation
 
 ```jinja
 {% from 'Shared/macros.html.jinja' import form_input, form_select, form_toggle %}
 
 <div class="row">
-  {{ form_input("nombre", "Nombre", value="", placeholder="Ingrese nombre") }}
-  {{ form_select("perfil", "Perfil", options=perfiles_data, selected_value=1) }}
-  {{ form_toggle("activo", "Activo", checked=True) }}
+  {{ form_input("nombre", "Name", value="", placeholder="Enter name") }}
+  {{ form_select("perfil", "Profile", options=perfiles_data, selected_value=1) }}
+  {{ form_toggle("activo", "Active", checked=True) }}
 </div>
 ```
 
-**Validación JavaScript:**
+**JavaScript validation:**
 ```javascript
-// Validar campo genérico
+// Validate generic field
 await ValidarCampoGenerico(element, errorElement, {
-  tipo: "email", // null para texto genérico
-  mensajeError: "Este campo es obligatorio"
+  tipo: "email", // null for generic text
+  mensajeError: "This field is required"
 });
 
-// Limpiar errores
+// Clear field errors
 LimpiarErroresCampos(["nombre", "email"]);
 ```
 
-### 7. Autenticación
+### 7. Authentication
 
 ```python
-# Proteger ruta con cookie auth
+# Protect route with cookie auth
 @router.get("/dashboard")
 async def dashboard(
     request: Request,
@@ -311,23 +322,23 @@ async def dashboard(
     )
 ```
 
-### 8. Mensajes SweetAlert
+### 8. SweetAlert Messages
 
 ```javascript
-// Éxito temporal
-MostrarExitoTemporal("Operación exitosa");
+// Temporary success
+MostrarExitoTemporal("Operation successful");
 
 // Error
-MostrarError("Error", "Mensaje de error");
+MostrarError("Error", "Error message");
 
-// Confirmación
-MostrarConfirmacion("¿Confirmar?", "Mensaje", "Sí, confirmar").then((result) => {
+// Confirmation
+MostrarConfirmacion("Confirm?", "Message", "Yes, confirm").then((result) => {
   if (result.isConfirmed) {
-    // Acción confirmada
+    // Confirmed action
   }
 });
 
-// Selector de formato de descarga
+// Download format selector
 MostrarSelectorFormatoDescarga().then((result) => {
   if (result.isConfirmed) {
     const formato = result.value; // 'xlsx', 'csv', 'pdf'
@@ -335,31 +346,51 @@ MostrarSelectorFormatoDescarga().then((result) => {
 });
 ```
 
-## Ejemplos Incluidos
+## Included Examples
 
-El template incluye ejemplos completos de uso:
+The template includes complete usage examples:
 
 1. **Login**: `templates/Autentica/index.html.jinja`
 2. **Home**: `templates/Home/index.html.jinja`
 3. **DataTable CRUD**: `templates/Mantenedor/ejemplo_datatable.html.jinja`
-4. **Bitácora con Filtros**: `templates/Bitacora/ejemplo_bitacora.html.jinja`
-5. **Página de Detalle**: `templates/Bitacora/ejemplo_bitacora_detalle.html.jinja`
+4. **Log with Filters**: `templates/Bitacora/ejemplo_bitacora.html.jinja`
+5. **Detail Page**: `templates/Bitacora/ejemplo_bitacora_detalle.html.jinja`
 
 ## Docker
 
 ```bash
 docker build -t web-template .
-docker run -p 8000:8000 --env-file .env web-template
+
+# Environment variables from repositorio_lib
+docker run -p 8000:8000 \
+  -v $(pwd)/../repositorio_lib:/app/repositorio_lib \
+  --env-file ../repositorio_lib/config/.env \
+  web-template
 ```
 
-## Notas Importantes
+**Note:** The `.env` file must be in `../repositorio_lib/config/.env`
 
-1. **Extensión de archivos**: Usar `.html.jinja` para templates
-2. **Server-side processing**: Para tablas grandes, usar server-side processing
-3. **Helpers JavaScript**: Revisar `/static/js/datatable-serverside.js` y `/static/js/site.js` para funciones disponibles
-4. **Macros**: Importar solo los macros que necesites para mejor rendimiento
-5. **Loader**: El loader global se activa automáticamente en navegación de links y formularios con clase `auto-loader`
+## Important Notes
 
-## Licencia
+1. **Environment variables**: Configure ONLY in `repositorio_lib/config/.env` (DO NOT create .env in this template)
+2. **File extension**: Use `.html.jinja` for templates
+3. **Server-side processing**: For large tables, use server-side processing
+4. **JavaScript helpers**: Review `/static/js/datatable-serverside.js` and `/static/js/site.js` for available functions
+5. **Macros**: Import only the macros you need for better performance
+6. **Loader**: The global loader activates automatically on link navigation and forms with the `auto-loader` class
 
-Plantilla de código libre para uso en proyectos Python
+## Centralized Configuration
+
+```python
+# Import configuration from repositorio_lib
+from repositorio_lib.config.settings import db_settings, jwt_settings, app_settings
+
+# Use in code
+db_url = db_settings.get_connection_string(async_mode=True)
+secret_key = jwt_settings.SECRET_KEY
+log_dir = app_settings.get_log_dir()
+```
+
+## License
+
+Free code template for use in Python projects

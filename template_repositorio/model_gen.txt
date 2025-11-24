@@ -1,3 +1,4 @@
 # Para generación de modelos con sqlacodegen
-sqlacodegen==3.0.0rc5
+sqlacodegen==3.0.0
 psycopg2-binary==2.9.10
+python-dotenv==1.1.0

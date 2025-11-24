@@ -1,11 +1,11 @@
 """
-Router v1 - Rutas de la aplicación web
+Router v1 - Web application routes
 """
 
 from fastapi import APIRouter, Request, Depends, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from controller.v1Controller import v1Controller
-from dependencies.auth import get_current_user_cookie, create_session_cookie
+from dependencies.auth import get_current_user_cookie
 
 router = APIRouter()
 
@@ -16,17 +16,17 @@ def get_controller() -> v1Controller:
     return v1Controller()
 
 
-# Páginas públicas
+# Public pages
 
 @router.get("/", response_class=HTMLResponse)
 async def home(request: Request, templates=Depends(get_templates)):
-    """Página de inicio"""
+    """Home page"""
     return templates.TemplateResponse("index.html", {"request": request})
 
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request, templates=Depends(get_templates)):
-    """Página de login"""
+    """Login page"""
     return templates.TemplateResponse("login.html", {"request": request})
 
 
@@ -37,22 +37,22 @@ async def login(
     password: str = Form(...),
     controller: v1Controller = Depends(get_controller)
 ):
-    """Procesar login"""
+    """Process login"""
     result = await controller.login(username, password)
 
     if result.get("success"):
         response = RedirectResponse("/dashboard", status_code=303)
-        # Crear cookie de sesión
+        # Create session cookie
         response.set_cookie(
             key="session_token",
             value=result["access_token"],
             httponly=True,
-            secure=False,  # True en producción con HTTPS
+            secure=False,  # True in production with HTTPS
             samesite="lax"
         )
         return response
     else:
-        # Volver a login con error
+        # Return to login with error
         templates = request.app.state.templates
         return templates.TemplateResponse(
             "login.html",
@@ -62,13 +62,13 @@ async def login(
 
 @router.get("/logout")
 async def logout():
-    """Cerrar sesión"""
+    """Close session"""
     response = RedirectResponse("/login", status_code=303)
     response.delete_cookie("session_token")
     return response
 
 
-# Páginas protegidas (requieren autenticación)
+# Protected pages (require authentication)
 
 @router.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(
@@ -76,11 +76,11 @@ async def dashboard(
     user: dict = Depends(get_current_user_cookie),
     templates=Depends(get_templates)
 ):
-    """Dashboard principal (requiere autenticación)"""
+    """Main dashboard (requires authentication)"""
     return templates.TemplateResponse(
         "dashboard.html",
         {"request": request, "user": user}
     )
 
 
-# TODO: Agregar más rutas según necesidad
+# TODO: Add more routes as needed

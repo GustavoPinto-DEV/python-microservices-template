@@ -12,9 +12,9 @@ from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
 from datetime import datetime, timedelta
 from collections import defaultdict
-import logging
 
-logger = logging.getLogger(__name__)
+# Logger centralizado
+from config.logger import logger
 
 
 class RateLimiterMiddleware(BaseHTTPMiddleware):

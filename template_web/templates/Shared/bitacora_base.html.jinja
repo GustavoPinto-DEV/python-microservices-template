@@ -1,21 +1,21 @@
 {#
-  Base template for audit log pages with filters and DataTables
+  Base template for Log pages with filters and DataTables
 
-  This template is for audit logs that have custom filters
-  before the table.
+  This template is for log pages that have custom filters
+  before the table (e.g., APISuTyp, ProcesoFTP)
 
   Usage example:
-    {% extends "Shared/audit_log_base.html.jinja" %}
+    {% extends "Shared/bitacora_base.html.jinja" %}
 
-    {% block page_title %}API Audit Log{% endblock %}
+    {% block page_title %}API SUTyp{% endblock %}
 
-    {% block filtros %}
+    {% block filters %}
       <!-- Your custom filters here -->
     {% endblock %}
 
     {% block datatable_js %}
     <script>
-      // Your DataTable logic here
+      // Your DataTable logic
     </script>
     {% endblock %}
 #}
@@ -34,7 +34,7 @@
 <hr />
 
 {# Custom filters area #}
-{% block filtros %}
+{% block filters %}
 {# Override this block in child templates with your filters #}
 {% endblock %}
 
@@ -61,5 +61,5 @@
    Blocks to override in child templates
    ======================================== #}
 
-{% block page_title %}Audit Log{% endblock %}
+{% block page_title %}Log{% endblock %}
 {% block table_id %}tabla{% endblock %}

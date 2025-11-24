@@ -1,54 +1,89 @@
-# Consola Template - Asyncio Batch Service
+# Console Template - Asyncio Batch Service
 
-Plantilla genérica para servicios de consola/batch basados en asyncio para procesamiento en segundo plano.
+Generic template for console/batch services based on asyncio for background processing.
 
-## Características
+## Features
 
-- ✅ Ejecución asíncrona con asyncio
-- ✅ Procesamiento batch continuo o programado
-- ✅ Manejo graceful de señales (SIGINT, SIGTERM)
-- ✅ Logging estructurado con rotación
-- ✅ Conexión asíncrona a PostgreSQL
-- ✅ Reintentos automáticos con backoff exponencial
-- ✅ Integración con servicios externos (APIs, SFTP)
+- ✅ Asynchronous execution with asyncio
+- ✅ Continuous or scheduled batch processing
+- ✅ Graceful signal handling (SIGINT, SIGTERM)
+- ✅ Structured logging with rotation
+- ✅ Asynchronous PostgreSQL connection
+- ✅ Automatic retries with exponential backoff
+- ✅ Integration with external services (APIs, SFTP)
 - ✅ Docker ready
 
-## Estructura del Proyecto
+## Project Structure
 
 ```
 template_consola/
-├── main.py              # Punto de entrada
-├── requirements.txt     # Dependencias Python
-├── .env.example         # Variables de entorno (copiar a .env)
-├── Dockerfile          # Contenedor Docker
+├── main.py                    # Entry point
+├── requirements.txt           # Python dependencies
+├── .env.example               # Environment variables (copy to .env)
+├── Dockerfile                 # Docker container
+├── PROCESOS_PARALELOS.md      # ⭐ Parallel execution guide
 ├── config/
-│   └── env.py          # Variables globales de entorno
+│   └── env.py                 # Global environment variables
 ├── dependencies/
-│   └── util.py         # Utilidades del proyecto
+│   └── util.py                # Project utilities
 ├── exception/
-│   └── exception_handlers.py  # Manejadores de errores
+│   └── exception_handlers.py # Error handlers
 ├── processes/
-│   └── ejemplo_proceso.py  # Procesos batch específicos
+│   ├── ejemplo_proceso.py     # Example batch process
+│   ├── proceso_a.py          # 🔵 Process A (data update)
+│   ├── proceso_b.py          # 🟢 Process B (report generation)
+│   └── proceso_c.py          # 🟡 Process C (cleanup/maintenance)
 ├── service/
-│   └── servicio.py     # Orquestación del servicio
+│   └── servicio.py           # Service orchestration
 └── schema/
-    └── schemas.py      # Schemas Pydantic
+    └── schemas.py            # Pydantic schemas
 ```
 
-## Casos de Uso
+## Use Cases
 
-Esta plantilla es ideal para:
+This template is ideal for:
 
-- **Procesamiento batch**: Actualización masiva de datos, cálculos periódicos
-- **Sincronización**: Integración con sistemas externos (APIs, SFTP, FTP)
-- **Monitoreo**: Detección de anomalías, alertas automáticas
-- **Limpieza de datos**: Purga de registros antiguos, mantenimiento de BD
-- **Generación de reportes**: Reportes programados, envío de emails
-- **Workers**: Procesamiento de colas de tareas
+- **Batch processing**: Massive data updates, periodic calculations
+- **Synchronization**: Integration with external systems (APIs, SFTP, FTP)
+- **Monitoring**: Anomaly detection, automatic alerts
+- **Data cleanup**: Purging old records, database maintenance
+- **Report generation**: Scheduled reports, email sending
+- **Workers**: Task queue processing
 
-## Instalación
+## Parallel Process Execution
 
-### 1. Crear entorno virtual
+The template includes **3 example processes** that run in parallel using `asyncio.gather()`:
+
+```
+┌─────────────────────────────────────────┐
+│         Main Service                    │
+│         (service/servicio.py)           │
+└────────────────┬────────────────────────┘
+                 │
+                 │ asyncio.gather()
+                 │
+        ┌────────┼────────┐
+        │        │        │
+    ┌───▼───┐ ┌─▼───┐ ┌──▼──┐
+    │Proc A │ │Proc B│ │Proc C│  ⚡ In parallel
+    │ 🔵   │ │ 🟢  │ │ 🟡  │
+    │ 5.5s │ │ 6s  │ │ 6s  │
+    └───────┘ └─────┘ └─────┘
+```
+
+**Total time: ~6 seconds** (vs 17.5s if sequential)
+
+### Execution Options
+
+1. **Sequential**: One process after another
+2. **Parallel**: All simultaneously (⭐ active by default)
+3. **Combined**: Critical process first, then others in parallel
+
+See complete details in **`PROCESOS_PARALELOS.md`**
+
+## Installation
+
+### 1. Create virtual environment
 
 ```bash
 py -3.12 -m venv venv
@@ -60,86 +95,94 @@ venv\Scripts\activate
 source venv/bin/activate
 ```
 
-### 2. Instalar dependencias
+### 2. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Configurar variables de entorno
+### 3. Configure environment variables
+
+**⚠️ IMPORTANT:** Environment variables are NOT configured in this template.
+
+All variables are centrally managed in `repositorio_lib/config/.env`
 
 ```bash
-# Copiar el archivo de ejemplo
+# Configure variables in the shared repository
+cd ../repositorio_lib/config
 cp .env.example .env
-
-# Editar .env con tus configuraciones
+# Edit .env with DB, logging, etc.
 ```
 
-### 4. Ejecutar
+This template will automatically import configuration from `repositorio_lib.config.settings`
+
+### 4. Execute
 
 ```bash
 python main.py
 ```
 
-## Configuración
+## Configuration
 
-### Intervalo de Ejecución
+**⚠️ CONFIGURE IN:** `repositorio_lib/config/.env`
 
-Configurar en `.env`:
+### Execution Interval
 
 ```bash
-MINUTOS_CONSOLA=60  # Ejecutar cada 60 minutos
+MINUTOS_CONSOLA=60  # Execute every 60 minutes
 ```
 
-### Modo de Ejecución
+### Execution Mode
 
 ```bash
-# Ejecución continua (loop infinito)
+# Continuous execution (infinite loop)
 ENABLE_CONTINUOUS_MODE=true
 
-# Ejecución única (termina después de 1 ciclo)
+# Single execution (terminates after 1 cycle)
 ENABLE_CONTINUOUS_MODE=false
 ```
 
-## Agregar Nuevo Proceso
+**Note:** These variables are read from `service/servicio.py` which imports from `repositorio_lib.config.settings` or uses `os.getenv()` directly.
 
-### 1. Crear archivo en `processes/`
+## Adding a New Process
+
+### 1. Create file in `processes/`
 
 ```python
-# processes/mi_proceso.py
+# processes/my_process.py
 
 import logging
 
 logger = logging.getLogger(__name__)
 
-async def ejecutar_mi_proceso():
+async def execute_my_process():
     """
-    Ejecuta lógica del proceso batch.
+    Executes batch process logic.
     """
-    logger.info("Iniciando mi proceso...")
+    logger.info("Starting my process...")
 
-    # Tu lógica aquí
-    # - Consultar base de datos
-    # - Procesar registros
-    # - Llamar APIs externas
+    # Your logic here
+    # - Query database
+    # - Process records
+    # - Call external APIs
     # - Etc.
 
-    logger.info("Proceso completado exitosamente")
+    logger.info("Process completed successfully")
 ```
 
-### 2. Registrar en `service/servicio.py`
+### 2. Register in `service/servicio.py`
 
 ```python
-from processes.mi_proceso import ejecutar_mi_proceso
+from processes.my_process import execute_my_process
 
-async def ejecutar_ciclo(self):
-    # Agregar tu proceso al ciclo
-    await ejecutar_mi_proceso()
+async def execute_cycle(self):
+    # Add your process to the cycle
+    await execute_my_process()
 ```
 
-## Manejo de Errores
+## Error Handling
 
-El servicio incluye reintentos automáticos:
+The service includes automatic retries:
 
 ```python
 from your_data_layer.utils import retry_with_backoff
@@ -152,9 +195,9 @@ await retry_with_backoff(
 )
 ```
 
-## Detener el Servicio
+## Stopping the Service
 
-### Modo interactivo
+### Interactive mode
 
 ```bash
 Ctrl+C
@@ -166,7 +209,7 @@ Ctrl+C
 docker stop <container-id>
 ```
 
-El servicio siempre realiza un shutdown graceful, completando la tarea actual antes de detenerse.
+The service always performs a graceful shutdown, completing the current task before stopping.
 
 ## Docker
 
@@ -179,10 +222,14 @@ docker build -t consola-template .
 ### Run
 
 ```bash
-docker run --env-file .env consola-template
+# Environment variables from repositorio_lib
+docker run \
+  -v $(pwd)/../repositorio_lib:/app/repositorio_lib \
+  --env-file ../repositorio_lib/config/.env \
+  consola-template
 ```
 
-### Con Docker Compose
+### With Docker Compose
 
 ```yaml
 services:
@@ -192,86 +239,106 @@ services:
       dockerfile: Dockerfile
     restart: always
     env_file:
-      - .env
+      - ../repositorio_lib/config/.env  # ← Centralized configuration
     volumes:
+      - ../repositorio_lib:/app/repositorio_lib
       - ${LOG_HOST_PATH}:${LOG_DIR_EXTERNAL}
 ```
 
-## Integración con Repositorio Compartido
+## Integration with Shared Repository
 
-Este template está diseñado para trabajar con una librería compartida (`repositorio_lib`).
+This template **requires** a shared library (`repositorio_lib`) to function.
 
-### Instalar librería compartida
+### Install shared library
 
 ```bash
-# Asumiendo que tienes un proyecto 'data_layer' en el directorio padre
-pip install -e ../data_layer
+# Assuming you have the repository in the parent directory
+pip install -e ../repositorio_lib
 ```
 
-### Usar en el código
+### Centralized configuration
 
-```python
-from your_data_layer.core.database import get_async_session
-from your_data_layer.core.logger import setup_logger
-from your_data_layer.service.repository import v1Repository
-from your_data_layer.utils import retry_with_backoff
+**ALL environment variables are managed in:**
+
+```
+../repositorio_lib/config/
+├── settings.py      # Configuration with Pydantic
+├── .env             # Environment variables (create from .env.example)
+└── .env.example     # Configuration template
 ```
 
-## Ejemplos de Procesos
-
-### Actualización de datos desde API externa
+### Use in code
 
 ```python
-async def actualizar_datos_externos():
+# Configuration
+from repositorio_lib.config.settings import db_settings, app_settings
+
+# Database and utilities
+from repositorio_lib.core.database import get_async_session
+from repositorio_lib.core.logger import setup_logger
+from repositorio_lib.service.repository import v1Repositorio
+from repositorio_lib.utils import retry_with_backoff
+
+# Usage example
+db_url = db_settings.get_connection_string(async_mode=True)
+log_dir = app_settings.get_log_dir()
+```
+
+## Process Examples
+
+### Update data from external API
+
+```python
+async def update_external_data():
     async with get_async_session() as db:
-        # Obtener datos de API
-        datos = await llamar_api_externa()
+        # Get data from API
+        data = await call_external_api()
 
-        # Actualizar en base de datos
-        for item in datos:
-            await repositorio.actualizar_registro(db, item)
+        # Update in database
+        for item in data:
+            await repository.update_record(db, item)
 
         await db.commit()
 ```
 
-### Procesamiento batch con SFTP
+### Batch processing with SFTP
 
 ```python
-async def procesar_archivos_sftp():
-    # Conectar a SFTP
-    async with conectar_sftp() as sftp:
-        # Descargar archivos
-        archivos = await sftp.listar_archivos()
+async def process_sftp_files():
+    # Connect to SFTP
+    async with connect_sftp() as sftp:
+        # Download files
+        files = await sftp.list_files()
 
-        for archivo in archivos:
-            # Procesar archivo
-            contenido = await sftp.descargar(archivo)
-            await procesar_contenido(contenido)
+        for file in files:
+            # Process file
+            content = await sftp.download(file)
+            await process_content(content)
 
-            # Mover a carpeta procesados
-            await sftp.mover(archivo, "/procesados/")
+            # Move to processed folder
+            await sftp.move(file, "/processed/")
 ```
 
-## Monitoreo
+## Monitoring
 
 ### Logs
 
-Los logs se guardan en:
-- Desarrollo: `./logs/`
-- Producción: `/var/log/app/logs/`
+Logs are saved in:
+- Development: `./logs/`
+- Production: `/var/log/app/logs/`
 
 ### Health Check
 
-Para verificar que el servicio está corriendo:
+To verify that the service is running:
 
 ```bash
-# Ver logs en Docker
+# View logs in Docker
 docker logs <container-id>
 
-# Ver procesos
+# View processes
 ps aux | grep python
 ```
 
-## Licencia
+## License
 
-Plantilla de código libre para uso en proyectos Python
+Free code template for use in Python projects

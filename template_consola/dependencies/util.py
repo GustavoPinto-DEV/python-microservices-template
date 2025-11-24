@@ -1,8 +1,8 @@
 """
-Utilidades específicas del proyecto Consola
+Project-specific Utilities for Console
 
-Funciones helper y utilities que son específicas de este servicio de consola.
-Para utilidades compartidas entre proyectos, usar repositorio_lib/utils/
+Helper functions and utilities specific to this console service.
+For utilities shared between projects, use repositorio_lib/utils/
 """
 
 import logging
@@ -14,70 +14,70 @@ import httpx
 logger = logging.getLogger(__name__)
 
 
-async def reintentar_operacion(
-    funcion: Callable,
-    max_intentos: int = 3,
-    delay_inicial: int = 5,
-    nombre: str = "Operación"
+async def retry_operation(
+    function: Callable,
+    max_attempts: int = 3,
+    initial_delay: int = 5,
+    name: str = "Operation"
 ) -> Any:
     """
-    Ejecuta una función con reintentos automáticos y backoff exponencial.
+    Executes a function with automatic retries and exponential backoff.
 
     Args:
-        funcion: Función async a ejecutar
-        max_intentos: Número máximo de intentos
-        delay_inicial: Delay inicial en segundos
-        nombre: Nombre descriptivo para logging
+        function: Async function to execute
+        max_attempts: Maximum number of attempts
+        initial_delay: Initial delay in seconds
+        name: Descriptive name for logging
 
     Returns:
-        Resultado de la función
+        Function result
 
     Raises:
-        Exception: Si todos los intentos fallan
+        Exception: If all attempts fail
     """
-    for intento in range(1, max_intentos + 1):
+    for attempt in range(1, max_attempts + 1):
         try:
-            logger.info(f"Ejecutando {nombre} (intento {intento}/{max_intentos})")
-            resultado = await funcion()
-            logger.info(f"✅ {nombre} exitoso")
-            return resultado
+            logger.info(f"Executing {name} (attempt {attempt}/{max_attempts})")
+            result = await function()
+            logger.info(f"✅ {name} successful")
+            return result
 
         except Exception as e:
-            logger.error(f"❌ Error en {nombre} (intento {intento}): {e}")
+            logger.error(f"❌ Error in {name} (attempt {attempt}): {e}")
 
-            if intento < max_intentos:
-                # Backoff exponencial
-                delay = delay_inicial * (2 ** (intento - 1))
-                logger.info(f"⏳ Reintentando en {delay} segundos...")
+            if attempt < max_attempts:
+                # Exponential backoff
+                delay = initial_delay * (2 ** (attempt - 1))
+                logger.info(f"⏳ Retrying in {delay} seconds...")
                 await asyncio.sleep(delay)
             else:
-                logger.error(f"❌ {nombre} falló después de {max_intentos} intentos")
+                logger.error(f"❌ {name} failed after {max_attempts} attempts")
                 raise
 
 
-async def llamar_api_externa(
+async def call_external_api(
     url: str,
     method: str = "GET",
     headers: Optional[dict] = None,
     data: Optional[dict] = None,
     timeout: int = 30,
-    reintentar: bool = True
+    retry: bool = True
 ) -> Optional[dict]:
     """
-    Realiza llamada a API externa con manejo de errores y reintentos.
+    Makes call to external API with error handling and retries.
 
     Args:
-        url: URL de la API
-        method: Método HTTP
-        headers: Headers HTTP
-        data: Datos para POST/PUT
-        timeout: Timeout en segundos
-        reintentar: Si debe reintentar en caso de error
+        url: API URL
+        method: HTTP method
+        headers: HTTP headers
+        data: Data for POST/PUT
+        timeout: Timeout in seconds
+        retry: Whether to retry on error
 
     Returns:
-        Response JSON o None si hay error
+        Response JSON or None if error
     """
-    async def _hacer_llamada():
+    async def _make_call():
         async with httpx.AsyncClient(timeout=timeout) as client:
             if method.upper() == "GET":
                 response = await client.get(url, headers=headers)
@@ -86,189 +86,189 @@ async def llamar_api_externa(
             elif method.upper() == "PUT":
                 response = await client.put(url, headers=headers, json=data)
             else:
-                raise ValueError(f"Método HTTP no soportado: {method}")
+                raise ValueError(f"Unsupported HTTP method: {method}")
 
             response.raise_for_status()
             return response.json()
 
     try:
-        if reintentar:
-            return await reintentar_operacion(
-                _hacer_llamada,
-                max_intentos=3,
-                nombre=f"API {method} {url}"
+        if retry:
+            return await retry_operation(
+                _make_call,
+                max_attempts=3,
+                name=f"API {method} {url}"
             )
         else:
-            return await _hacer_llamada()
+            return await _make_call()
 
     except httpx.HTTPStatusError as e:
-        logger.error(f"Error HTTP {e.response.status_code}: {url}")
+        logger.error(f"HTTP error {e.response.status_code}: {url}")
         return None
     except httpx.RequestError as e:
-        logger.error(f"Error de conexión: {url} - {e}")
+        logger.error(f"Connection error: {url} - {e}")
         return None
     except Exception as e:
-        logger.error(f"Error inesperado llamando API: {e}", exc_info=True)
+        logger.error(f"Unexpected error calling API: {e}", exc_info=True)
         return None
 
 
-def formatear_duracion(segundos: float) -> str:
+def format_duration(seconds: float) -> str:
     """
-    Formatea duración en formato legible.
+    Formats duration in readable format.
 
     Args:
-        segundos: Duración en segundos
+        seconds: Duration in seconds
 
     Returns:
-        String formateado (ej: "2h 30m 15s")
+        Formatted string (e.g., "2h 30m 15s")
     """
-    if segundos < 60:
-        return f"{segundos:.1f}s"
+    if seconds < 60:
+        return f"{seconds:.1f}s"
 
-    minutos = int(segundos // 60)
-    segundos_restantes = segundos % 60
+    minutes = int(seconds // 60)
+    remaining_seconds = seconds % 60
 
-    if minutos < 60:
-        return f"{minutos}m {segundos_restantes:.0f}s"
+    if minutes < 60:
+        return f"{minutes}m {remaining_seconds:.0f}s"
 
-    horas = int(minutos // 60)
-    minutos_restantes = minutos % 60
+    hours = int(minutes // 60)
+    remaining_minutes = minutes % 60
 
-    return f"{horas}h {minutos_restantes}m"
+    return f"{hours}h {remaining_minutes}m"
 
 
-def calcular_siguiente_ejecucion(intervalo_minutos: int) -> datetime:
+def calculate_next_execution(interval_minutes: int) -> datetime:
     """
-    Calcula la hora de la próxima ejecución.
+    Calculates the time of next execution.
 
     Args:
-        intervalo_minutos: Intervalo en minutos
+        interval_minutes: Interval in minutes
 
     Returns:
-        Datetime de la próxima ejecución
+        Datetime of next execution
     """
     from datetime import timedelta
-    return datetime.now() + timedelta(minutes=intervalo_minutos)
+    return datetime.now() + timedelta(minutes=interval_minutes)
 
 
-async def procesar_en_lotes(
+async def process_in_batches(
     items: list,
-    funcion_procesamiento: Callable,
+    processing_function: Callable,
     batch_size: int = 10,
-    paralelo: bool = False
+    parallel: bool = False
 ) -> tuple[int, int]:
     """
-    Procesa una lista de items en lotes.
+    Processes a list of items in batches.
 
     Args:
-        items: Lista de items a procesar
-        funcion_procesamiento: Función async que procesa cada item
-        batch_size: Tamaño del lote
-        paralelo: Si True, procesa items en paralelo dentro de cada lote
+        items: List of items to process
+        processing_function: Async function that processes each item
+        batch_size: Batch size
+        parallel: If True, processes items in parallel within each batch
 
     Returns:
-        Tupla (exitosos, fallidos)
+        Tuple (successful, failed)
     """
-    exitosos = 0
-    fallidos = 0
+    successful = 0
+    failed = 0
     total = len(items)
 
     for i in range(0, total, batch_size):
-        lote = items[i:i + batch_size]
-        logger.info(f"Procesando lote {i//batch_size + 1} ({len(lote)} items)")
+        batch = items[i:i + batch_size]
+        logger.info(f"Processing batch {i//batch_size + 1} ({len(batch)} items)")
 
-        if paralelo:
-            # Procesar en paralelo
-            tareas = [funcion_procesamiento(item) for item in lote]
-            resultados = await asyncio.gather(*tareas, return_exceptions=True)
+        if parallel:
+            # Process in parallel
+            tasks = [processing_function(item) for item in batch]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
 
-            for resultado in resultados:
-                if isinstance(resultado, Exception):
-                    fallidos += 1
+            for result in results:
+                if isinstance(result, Exception):
+                    failed += 1
                 else:
-                    exitosos += 1
+                    successful += 1
         else:
-            # Procesar secuencialmente
-            for item in lote:
+            # Process sequentially
+            for item in batch:
                 try:
-                    await funcion_procesamiento(item)
-                    exitosos += 1
+                    await processing_function(item)
+                    successful += 1
                 except Exception as e:
-                    logger.error(f"Error procesando item: {e}")
-                    fallidos += 1
+                    logger.error(f"Error processing item: {e}")
+                    failed += 1
 
-        logger.info(f"Lote completado: {exitosos} ok, {fallidos} errores")
+        logger.info(f"Batch completed: {successful} ok, {failed} errors")
 
-    return exitosos, fallidos
+    return successful, failed
 
 
-def crear_reporte_ejecucion(
-    inicio: datetime,
-    fin: datetime,
-    registros_procesados: int,
-    exitosos: int,
-    fallidos: int,
-    errores: list = None
+def create_execution_report(
+    start: datetime,
+    end: datetime,
+    records_processed: int,
+    successful: int,
+    failed: int,
+    errors: list = None
 ) -> dict:
     """
-    Crea un reporte estructurado de una ejecución.
+    Creates a structured execution report.
 
     Args:
-        inicio: Timestamp de inicio
-        fin: Timestamp de fin
-        registros_procesados: Total de registros procesados
-        exitosos: Cantidad de exitosos
-        fallidos: Cantidad de fallidos
-        errores: Lista de errores ocurridos
+        start: Start timestamp
+        end: End timestamp
+        records_processed: Total records processed
+        successful: Number of successful
+        failed: Number of failed
+        errors: List of errors that occurred
 
     Returns:
-        Diccionario con reporte
+        Dictionary with report
     """
-    duracion = (fin - inicio).total_seconds()
+    duration = (end - start).total_seconds()
 
     return {
-        "inicio": inicio.isoformat(),
-        "fin": fin.isoformat(),
-        "duracion_segundos": duracion,
-        "duracion_formateada": formatear_duracion(duracion),
-        "registros_procesados": registros_procesados,
-        "exitosos": exitosos,
-        "fallidos": fallidos,
-        "tasa_exito": (exitosos / registros_procesados * 100) if registros_procesados > 0 else 0,
-        "errores": errores or []
+        "start": start.isoformat(),
+        "end": end.isoformat(),
+        "duration_seconds": duration,
+        "formatted_duration": format_duration(duration),
+        "records_processed": records_processed,
+        "successful": successful,
+        "failed": failed,
+        "success_rate": (successful / records_processed * 100) if records_processed > 0 else 0,
+        "errors": errors or []
     }
 
 
-async def enviar_notificacion(
-    titulo: str,
-    mensaje: str,
-    nivel: str = "info",
-    destinos: list = None
+async def send_notification(
+    title: str,
+    message: str,
+    level: str = "info",
+    destinations: list = None
 ):
     """
-    Envía notificaciones por diferentes canales.
+    Sends notifications through different channels.
 
     Args:
-        titulo: Título de la notificación
-        mensaje: Contenido del mensaje
-        nivel: Nivel de severidad (info, warning, error)
-        destinos: Lista de destinos (email, slack, etc.)
+        title: Notification title
+        message: Message content
+        level: Severity level (info, warning, error)
+        destinations: List of destinations (email, slack, etc.)
 
-    TODO: Implementar canales de notificación reales
+    TODO: Implement real notification channels
     """
-    logger.info(f"📧 Notificación [{nivel}]: {titulo} - {mensaje}")
+    logger.info(f"📧 Notification [{level}]: {title} - {message}")
 
-    # TODO: Implementar envío real
-    # if "email" in destinos:
-    #     await enviar_email(titulo, mensaje)
-    # if "slack" in destinos:
-    #     await enviar_slack(titulo, mensaje)
+    # TODO: Implement real sending
+    # if "email" in destinations:
+    #     await send_email(title, message)
+    # if "slack" in destinations:
+    #     await send_slack(title, message)
 
 
-# TODO: Agregar más utilidades según necesidad del proyecto
-# Ejemplos:
-# - Validaciones específicas
-# - Parsers de datos
-# - Helpers de SFTP
-# - Generadores de archivos (CSV, Excel, PDF)
-# - Compresión/descompresión
+# TODO: Add more utilities as needed for the project
+# Examples:
+# - Specific validations
+# - Data parsers
+# - SFTP helpers
+# - File generators (CSV, Excel, PDF)
+# - Compression/decompression

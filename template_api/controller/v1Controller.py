@@ -1,16 +1,18 @@
 """
-API Controller v1 - Business Logic
+Controller v1 - Business Logic
 
-This module implements the business logic for the API.
+This module implements the application's business logic.
 It communicates with the repository to access data and executes
-the necessary business rules.
+necessary business rules.
 
 Pattern: Router → Controller → Repository → Database
 """
 
 from fastapi import HTTPException, status
 from typing import List
-import logging
+
+# Centralized logger
+from config.logger import logger
 
 # Schemas
 from schema.schemas import (
@@ -21,31 +23,29 @@ from schema.schemas import (
 )
 
 # TODO: Import repository when configured
-# from repositorio_lib.service.repository import v1Repository
+# from repositorio_lib.service.repository import v1Repositorio
 # from repositorio_lib.schema.result import Result
-
-logger = logging.getLogger(__name__)
 
 
 class v1Controller:
     """
-    Main API v1 Controller.
+    Main controller for API v1.
 
-    Handles the business logic and coordinates operations
-    between routers and the repository.
+    Handles business logic and coordinates operations
+    between routers and repository.
     """
 
     def __init__(self):
-        """Initialize the controller with repository instance"""
+        """Initializes the controller with repository instance"""
         # TODO: Initialize real repository
-        # self.repository = v1Repository()
+        # self.repositorio = v1Repositorio()
         pass
 
     # region Authentication
 
     async def login(self, request: LoginRequest) -> LoginResponse:
         """
-        Authenticate a user and generate JWT token.
+        Authenticates a user and generates JWT token.
 
         Args:
             request: User credentials
@@ -60,7 +60,7 @@ class v1Controller:
             logger.info(f"Login attempt for user: {request.username}")
 
             # TODO: Implement real authentication with repository
-            # result = await self.repository.login_api(
+            # result = await self.repositorio.login_api(
             #     request.username,
             #     request.password
             # )
@@ -74,11 +74,10 @@ class v1Controller:
             # return LoginResponse(**result.data)
 
             # Temporary implementation for testing
-            # TODO: Remove hardcoded credentials before production
             if request.username == "admin" and request.password == "admin":
                 logger.info(f"Successful login for: {request.username}")
                 return LoginResponse(
-                    access_token="temporary-token-implement-real-jwt",
+                    access_token="temporary-token-change-to-real-jwt",
                     token_type="bearer",
                     username=request.username
                 )
@@ -93,7 +92,7 @@ class v1Controller:
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error during login: {e}", exc_info=True)
+            logger.error(f"Error in login: {e}", exc_info=True)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Internal server error"
@@ -101,23 +100,23 @@ class v1Controller:
 
     # endregion
 
-    # region CRUD Operations (example items)
+    # region Items CRUD (example)
 
     async def get_items(self) -> List[ItemResponse]:
         """
-        Get list of all items.
+        Gets list of all items.
 
         Returns:
             List of items
 
         Raises:
-            HTTPException: If query error occurs
+            HTTPException: If there's an error in the query
         """
         try:
-            logger.info("Retrieving list of items")
+            logger.info("Getting list of items")
 
             # TODO: Implement with real repository
-            # result = await self.repository.get_all("Item")
+            # result = await self.repositorio.get_all("Item")
             #
             # if result.status != status.HTTP_200_OK:
             #     raise HTTPException(
@@ -127,39 +126,39 @@ class v1Controller:
             #
             # return [ItemResponse(**item) for item in result.data]
 
-            # Sample data
+            # Example data
             return [
-                ItemResponse(id=1, name="Item 1", description="Sample description 1", active=True),
-                ItemResponse(id=2, name="Item 2", description="Sample description 2", active=True),
+                ItemResponse(id=1, name="Item 1", description="Description 1", active=True),
+                ItemResponse(id=2, name="Item 2", description="Description 2", active=True),
             ]
 
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error retrieving items: {e}", exc_info=True)
+            logger.error(f"Error getting items: {e}", exc_info=True)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to retrieve items"
+                detail="Error getting items"
             )
 
     async def get_item(self, item_id: int) -> ItemResponse:
         """
-        Get item by ID.
+        Gets an item by ID.
 
         Args:
-            item_id: Item identifier
+            item_id: Item ID
 
         Returns:
             Item data
 
         Raises:
-            HTTPException 404: If item does not exist
+            HTTPException 404: If item doesn't exist
         """
         try:
-            logger.info(f"Retrieving item with ID: {item_id}")
+            logger.info(f"Getting item with ID: {item_id}")
 
             # TODO: Implement with repository
-            # result = await self.repository.get_one("Item", item_id)
+            # result = await self.repositorio.get_one("Item", item_id)
             #
             # if result.status == status.HTTP_404_NOT_FOUND:
             #     raise HTTPException(
@@ -174,7 +173,7 @@ class v1Controller:
                 return ItemResponse(
                     id=item_id,
                     name="Item 1",
-                    description="Sample item 1 description",
+                    description="Description of item 1",
                     active=True
                 )
             else:
@@ -186,24 +185,24 @@ class v1Controller:
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error retrieving item {item_id}: {e}", exc_info=True)
+            logger.error(f"Error getting item {item_id}: {e}", exc_info=True)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to retrieve item"
+                detail="Error getting item"
             )
 
     async def create_item(self, request: ItemRequest) -> ItemResponse:
         """
-        Create a new item.
+        Creates a new item.
 
         Args:
-            request: Item data to create
+            request: Data for the item to create
 
         Returns:
             Created item with assigned ID
 
         Raises:
-            HTTPException: If creation error occurs
+            HTTPException: If there's an error creating the item
         """
         try:
             logger.info(f"Creating new item: {request.name}")
@@ -212,11 +211,11 @@ class v1Controller:
             if not request.name or len(request.name) < 3:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Name must be at least 3 characters"
+                    detail="Name must be at least 3 characters long"
                 )
 
             # TODO: Implement with repository
-            # result = await self.repository.create("Item", request.dict())
+            # result = await self.repositorio.create("Item", request.dict())
             #
             # if result.status != status.HTTP_201_CREATED:
             #     raise HTTPException(
@@ -228,7 +227,7 @@ class v1Controller:
 
             # Example
             return ItemResponse(
-                id=999,  # In production, assigned by database
+                id=999,  # In production, would be assigned by DB
                 name=request.name,
                 description=request.description,
                 active=request.active
@@ -240,31 +239,31 @@ class v1Controller:
             logger.error(f"Error creating item: {e}", exc_info=True)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create item"
+                detail="Error creating item"
             )
 
     async def update_item(self, item_id: int, request: ItemRequest) -> ItemResponse:
         """
-        Update existing item.
+        Updates an existing item.
 
         Args:
-            item_id: Item identifier to update
+            item_id: ID of the item to update
             request: New item data
 
         Returns:
             Updated item
 
         Raises:
-            HTTPException: If item does not exist or error occurs
+            HTTPException: If item doesn't exist or there's an error
         """
         try:
             logger.info(f"Updating item {item_id}")
 
             # Verify that item exists
-            # await self.get_item(item_id)  # Raises 404 if not found
+            # await self.get_item(item_id)  # Raises 404 if it doesn't exist
 
             # TODO: Implement with repository
-            # result = await self.repository.update("Item", item_id, request.dict())
+            # result = await self.repositorio.update("Item", item_id, request.dict())
             #
             # if result.status != status.HTTP_200_OK:
             #     raise HTTPException(
@@ -288,18 +287,18 @@ class v1Controller:
             logger.error(f"Error updating item {item_id}: {e}", exc_info=True)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to update item"
+                detail="Error updating item"
             )
 
     async def delete_item(self, item_id: int) -> None:
         """
-        Delete an item.
+        Deletes an item.
 
         Args:
-            item_id: Item identifier to delete
+            item_id: ID of the item to delete
 
         Raises:
-            HTTPException: If item does not exist or error occurs
+            HTTPException: If item doesn't exist or there's an error
         """
         try:
             logger.info(f"Deleting item {item_id}")
@@ -308,7 +307,7 @@ class v1Controller:
             # await self.get_item(item_id)
 
             # TODO: Implement with repository
-            # result = await self.repository.delete("Item", item_id)
+            # result = await self.repositorio.delete("Item", item_id)
             #
             # if result.status != status.HTTP_204_NO_CONTENT:
             #     raise HTTPException(
@@ -324,12 +323,12 @@ class v1Controller:
             logger.error(f"Error deleting item {item_id}: {e}", exc_info=True)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to delete item"
+                detail="Error deleting item"
             )
 
     # endregion
 
-    # TODO: Add more methods according to required business logic
+    # TODO: Add more methods according to business logic needs
     # Examples:
     # - Complex operations involving multiple models
     # - Specific business validations

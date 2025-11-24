@@ -1,32 +1,31 @@
 """
-Controller v1 - Lógica de negocio para web
+Controller v1 - Business logic for web
 """
 
-import logging
-
-logger = logging.getLogger(__name__)
+# Centralized logger
+from config.logger import logger
 
 
 class v1Controller:
-    """Controller principal de la aplicación web"""
+    """Main controller for web application"""
 
     def __init__(self):
-        # TODO: Inicializar repositorio
+        # TODO: Initialize repository
         pass
 
     async def login(self, username: str, password: str) -> dict:
-        """Autentica usuario"""
+        """Authenticates user"""
         try:
-            # TODO: Implementar autenticación real
+            # TODO: Implement real authentication
             if username == "admin" and password == "admin":
                 return {
                     "success": True,
                     "access_token": "temp-token-change-for-real-jwt",
                     "username": username
                 }
-            return {"success": False, "error": "Credenciales inválidas"}
+            return {"success": False, "error": "Invalid credentials"}
         except Exception as e:
-            logger.error(f"Error en login: {e}", exc_info=True)
-            return {"success": False, "error": "Error interno"}
+            logger.error(f"Login error: {e}", exc_info=True)
+            return {"success": False, "error": "Internal error"}
 
-    # TODO: Agregar más métodos
+    # TODO: Add more methods

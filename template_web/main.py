@@ -1,10 +1,10 @@
 """
 Web Template - Main Entry Point
 
-Template para aplicaciones web con FastAPI + Jinja2.
-Combina backend API con renderizado de templates HTML.
+Template for web applications with FastAPI + Jinja2.
+Combines backend API with HTML template rendering.
 
-Uso:
+Usage:
     uvicorn main:app --port 8000 --reload
 """
 
@@ -18,70 +18,60 @@ from fastapi.templating import Jinja2Templates
 from contextlib import asynccontextmanager
 import logging
 
-# Environment
-import config.env as env
-
-# TODO: Descomentar cuando tengas repositorio_lib configurado
-# from repositorio_lib.core.logger import setup_logger
+# Centralized logger (ONE logger for the entire application)
+from config.logger import logger
 
 # Exception handlers
-from exception.exception_handlers import registrar_exception_handlers
+from exception.exception_handlers import register_exception_handlers
 
 # Project
 from router import v1Router
-
-# Setup logger
-# logger = setup_logger("web", level=logging.INFO, log_to_file=True)
-
-# Alternativa temporal sin repositorio_lib
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Gestiona el ciclo de vida de la aplicación web.
-    Inicializa recursos al arrancar y limpia al cerrar.
+    Manages the web application lifecycle.
+    Initializes resources on startup and cleans up on shutdown.
     """
-    logger.info("🚀 Aplicación web iniciada y lista")
+    logger.info("Web application started and ready")
 
-    # TODO: Agregar inicialización si es necesaria
-    # - Conexión a base de datos
-    # - Precarga de datos
-    # - Inicialización de caché
+    # TODO: Add initialization if needed
+    # - Database connection
+    # - Data preloading
+    # - Cache initialization
 
     yield
 
-    logger.info("🛑 Cerrando aplicación web...")
+    logger.info("Shutting down web application...")
 
 
-# Crear aplicación FastAPI
+# Create FastAPI application
 app = FastAPI(
     title="Web Template",
-    description="Template para aplicaciones web con FastAPI + Jinja2",
+    description="Template for web applications with FastAPI + Jinja2",
     version="v1.0.0",
     contact={
-        "name": "Soporte",
-        "email": "soporte@example.com",
+        "name": "Support",
+        "email": "support@example.com",
     },
     lifespan=lifespan,
-    # Personalizar docs URL si necesitas
+    # Customize docs URL if needed
     docs_url="/api/docs",
     redoc_url="/api/redoc",
     openapi_url="/api/openapi.json"
 )
 
-# Registrar manejadores de excepciones
-registrar_exception_handlers(app)
+# Register exception handlers
+register_exception_handlers(app)
 
 
 # region Middlewares
 
-# CORS para permitir requests desde diferentes orígenes
+# CORS to allow requests from different origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TODO: Configurar orígenes específicos en producción
+    allow_origins=["*"],  # TODO: Configure specific origins in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -90,15 +80,15 @@ app.add_middleware(
 # endregion
 
 
-# region Static Files y Templates
+# region Static Files and Templates
 
-# Montar archivos estáticos (CSS, JS, imágenes)
+# Mount static files (CSS, JS, images)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Configurar templates Jinja2
+# Configure Jinja2 templates
 templates = Jinja2Templates(directory="templates")
 
-# Hacer templates disponible globalmente para routers
+# Make templates available globally for routers
 app.state.templates = templates
 
 # endregion
@@ -106,7 +96,7 @@ app.state.templates = templates
 
 # region Routes
 
-# Incluir routers
+# Include routers
 app.include_router(v1Router.router, prefix="", tags=["web"])
 
 # endregion

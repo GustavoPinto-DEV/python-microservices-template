@@ -15,10 +15,10 @@ from fastapi.responses import JSONResponse
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
-import logging
 import re
 
-logger = logging.getLogger(__name__)
+# Logger centralizado
+from config.logger import logger
 
 
 class RateLimitRule:

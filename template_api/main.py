@@ -19,13 +19,15 @@ import logging
 # Environment
 import config.env as env
 
+# Centralized logger (ONE SINGLE logger for the entire application)
+from config.logger import logger
+
 # Repository (uncomment when you have your shared library configured)
 # from your_repo_lib.utils import retry_until_success
 # from your_repo_lib.config.settings import api_settings
-# from your_repo_lib.core.logger import setup_logger
 
 # Exception handlers
-from exception.exception_handlers import register_exception_handlers
+from exception.exception_handlers import registrar_exception_handlers
 
 # Middleware
 from middleware.CompressionMiddleware import CompressionMiddleware
@@ -34,19 +36,11 @@ from middleware.CompressionMiddleware import CompressionMiddleware
 # Project
 from router import v1Router
 
-# TODO: Configure logger with your logging system
-# Setup logger for API
-# logger = setup_logger("api", level=logging.INFO, log_to_file=True)
-
-# Temporary basic logger
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Manage FastAPI application lifecycle.
+    Manages the FastAPI application lifecycle.
     Preloads reference data on startup and releases resources on shutdown.
 
     Customize this function to:
@@ -55,18 +49,18 @@ async def lifespan(app: FastAPI):
     - Initialize cache
     - Initialize workers or connection pools
     """
-    logger.info("🚀 API started and ready to receive requests")
+    logger.info("API started and ready to receive requests")
 
     # TODO: Add data preloading
     # try:
     #     await retry_until_success(preload_parameters, name="parameters")
-    #     logger.info("✅ Data preloaded successfully")
+    #     logger.info("Data preloaded successfully")
     # except Exception as e:
-    #     logger.error(f"❌ Error during initialization: {e}", exc_info=True)
+    #     logger.error(f"Error during initialization: {e}", exc_info=True)
 
     yield
 
-    logger.info("🛑 Closing application...")
+    logger.info("Shutting down application...")
 
 
 # Create FastAPI application
@@ -82,14 +76,14 @@ app = FastAPI(
 )
 
 # Register centralized exception handlers
-register_exception_handlers(app)
+registrar_exception_handlers(app)
 
 
 # region Middlewares
 # IMPORTANT: Middleware registration order matters
 # They execute in reverse order of registration (last registered = first to execute)
 
-# CORS must be last (first to execute) to handle preflight requests
+# CORS should be last (first to execute) to handle preflight requests
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # TODO: Configure allowed origins in production
@@ -106,7 +100,7 @@ app.add_middleware(
     exclude_paths=["/health", "/docs", "/redoc", "/openapi.json"]
 )
 
-# TODO: Uncomment rate limiter if you need it
+# TODO: Uncomment rate limiter if needed
 # Rate limiter: protects against abuse and DDoS
 # app.add_middleware(
 #     RateLimiterMiddleware,
@@ -145,7 +139,7 @@ def health_check():
     """
     return {
         "status": "healthy",
-        "database": "not_configured",  # TODO: Verify real database connection
+        "database": "not_configured",  # TODO: Verify real DB connection
         "cache": "not_configured",     # TODO: Verify Redis/cache connection if applicable
         "environment": env.APP_ENV.get("environment", "unknown")
     }

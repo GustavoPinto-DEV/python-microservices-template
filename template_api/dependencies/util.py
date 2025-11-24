@@ -1,48 +1,48 @@
 """
-Utilidades específicas del proyecto API
+Project-specific Utilities for API
 
-Funciones helper y utilities que son específicas de este proyecto.
-Para utilidades compartidas entre proyectos, usar repositorio_lib/utils/
+Helper functions and utilities specific to this project.
+For utilities shared across projects, use repositorio_lib/utils/
 """
 
-import logging
 from typing import Optional, Dict, Any
 from datetime import datetime
 import httpx
 
-logger = logging.getLogger(__name__)
+# Centralized logger
+from config.logger import logger
 
 
 async def validate_request_data(data: dict, required_fields: list) -> tuple[bool, Optional[str]]:
     """
-    Valida que un request contenga todos los campos requeridos.
+    Validates that a request contains all required fields.
 
     Args:
-        data: Diccionario con datos del request
-        required_fields: Lista de campos requeridos
+        data: Dictionary with request data
+        required_fields: List of required fields
 
     Returns:
-        Tupla (es_valido, mensaje_error)
+        Tuple (is_valid, error_message)
     """
     missing_fields = [field for field in required_fields if field not in data or not data[field]]
 
     if missing_fields:
-        return False, f"Campos requeridos faltantes: {', '.join(missing_fields)}"
+        return False, f"Missing required fields: {', '.join(missing_fields)}"
 
     return True, None
 
 
-def format_response(data: Any, message: str = "Éxito", status: int = 200) -> dict:
+def format_response(data: Any, message: str = "Success", status: int = 200) -> dict:
     """
-    Formatea una respuesta estándar de la API.
+    Formats a standard API response.
 
     Args:
-        data: Datos a retornar
-        message: Mensaje descriptivo
-        status: Código de estado HTTP
+        data: Data to return
+        message: Descriptive message
+        status: HTTP status code
 
     Returns:
-        Diccionario con formato estándar
+        Dictionary with standard format
     """
     return {
         "status": status,
@@ -60,17 +60,17 @@ async def call_external_api(
     timeout: int = 30
 ) -> Optional[dict]:
     """
-    Realiza una llamada a una API externa con manejo de errores.
+    Makes a call to an external API with error handling.
 
     Args:
-        url: URL de la API
-        method: Método HTTP (GET, POST, etc.)
-        headers: Headers HTTP opcionales
-        data: Datos para POST/PUT
-        timeout: Timeout en segundos
+        url: API URL
+        method: HTTP method (GET, POST, etc.)
+        headers: Optional HTTP headers
+        data: Data for POST/PUT
+        timeout: Timeout in seconds
 
     Returns:
-        Response JSON de la API o None si hay error
+        JSON response from API or None if error
     """
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
@@ -83,41 +83,41 @@ async def call_external_api(
             elif method.upper() == "DELETE":
                 response = await client.delete(url, headers=headers)
             else:
-                logger.error(f"Método HTTP no soportado: {method}")
+                logger.error(f"Unsupported HTTP method: {method}")
                 return None
 
             response.raise_for_status()
             return response.json()
 
     except httpx.HTTPStatusError as e:
-        logger.error(f"Error HTTP en API externa: {e.response.status_code} - {url}")
+        logger.error(f"HTTP error in external API: {e.response.status_code} - {url}")
         return None
     except httpx.RequestError as e:
-        logger.error(f"Error de conexión con API externa: {url} - {e}")
+        logger.error(f"Connection error with external API: {url} - {e}")
         return None
     except Exception as e:
-        logger.error(f"Error inesperado llamando API externa: {e}", exc_info=True)
+        logger.error(f"Unexpected error calling external API: {e}", exc_info=True)
         return None
 
 
 def sanitize_input(text: str, max_length: int = 1000) -> str:
     """
-    Sanitiza input de usuario para prevenir inyección.
+    Sanitizes user input to prevent injection.
 
     Args:
-        text: Texto a sanitizar
-        max_length: Longitud máxima permitida
+        text: Text to sanitize
+        max_length: Maximum allowed length
 
     Returns:
-        Texto sanitizado
+        Sanitized text
     """
     if not text:
         return ""
 
-    # Truncar si es muy largo
+    # Truncate if too long
     text = text[:max_length]
 
-    # Remover caracteres peligrosos (ajustar según necesidad)
+    # Remove dangerous characters (adjust as needed)
     dangerous_chars = ['<', '>', '{', '}', '\\', '|']
     for char in dangerous_chars:
         text = text.replace(char, '')
@@ -127,15 +127,15 @@ def sanitize_input(text: str, max_length: int = 1000) -> str:
 
 def calculate_pagination(total: int, page: int, page_size: int) -> dict:
     """
-    Calcula información de paginación.
+    Calculates pagination information.
 
     Args:
-        total: Total de registros
-        page: Página actual
-        page_size: Tamaño de página
+        total: Total records
+        page: Current page
+        page_size: Page size
 
     Returns:
-        Diccionario con info de paginación
+        Dictionary with pagination info
     """
     import math
 
@@ -161,14 +161,14 @@ async def log_api_call(
     status_code: Optional[int] = None
 ) -> None:
     """
-    Registra información de llamadas a la API.
+    Logs API call information.
 
     Args:
-        endpoint: Ruta del endpoint
-        method: Método HTTP
-        user: Usuario que hizo la llamada
-        duration_ms: Duración en milisegundos
-        status_code: Código de estado de respuesta
+        endpoint: Endpoint path
+        method: HTTP method
+        user: User who made the call
+        duration_ms: Duration in milliseconds
+        status_code: Response status code
     """
     log_data = {
         "endpoint": endpoint,
@@ -181,20 +181,20 @@ async def log_api_call(
 
     logger.info(f"API Call: {log_data}")
 
-    # TODO: Si se necesita persistir en BD
+    # TODO: If DB persistence is needed
     # await repository.create_log(log_data)
 
 
 def mask_sensitive_data(data: dict, sensitive_keys: list = None) -> dict:
     """
-    Enmascara datos sensibles en un diccionario para logging.
+    Masks sensitive data in a dictionary for logging.
 
     Args:
-        data: Diccionario con datos
-        sensitive_keys: Claves a enmascarar
+        data: Dictionary with data
+        sensitive_keys: Keys to mask
 
     Returns:
-        Diccionario con datos enmascarados
+        Dictionary with masked data
     """
     if sensitive_keys is None:
         sensitive_keys = ["password", "token", "secret", "api_key", "credit_card"]
@@ -208,10 +208,10 @@ def mask_sensitive_data(data: dict, sensitive_keys: list = None) -> dict:
     return masked_data
 
 
-# TODO: Agregar más utilidades según necesidad del proyecto
-# Ejemplos:
-# - Validaciones de negocio específicas
-# - Formateo de datos
-# - Conversiones de timezone
-# - Generación de códigos únicos
-# - Cálculos específicos del dominio
+# TODO: Add more utilities according to project needs
+# Examples:
+# - Specific business validations
+# - Data formatting
+# - Timezone conversions
+# - Unique code generation
+# - Domain-specific calculations

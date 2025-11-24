@@ -1,8 +1,8 @@
-"""Schemas para Web"""
+"""Schemas for Web"""
 from pydantic import BaseModel
 
 class LoginForm(BaseModel):
     username: str
     password: str
 
-# TODO: Agregar más schemas
+# TODO: Add more schemas

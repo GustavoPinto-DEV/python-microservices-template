@@ -1,0 +1,198 @@
+# ============================================================================
+# .dockerignore - Archivos excluidos de build context
+# ============================================================================
+#
+# Este archivo define qué archivos NO copiar al build context de Docker.
+# Esto reduce el tamaño del contexto y mejora la velocidad de build.
+#
+# Ubicación: Raíz del proyecto como .dockerignore
+#
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# Git y Control de Versiones
+# ----------------------------------------------------------------------------
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# ----------------------------------------------------------------------------
+# Python
+# ----------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.pyc
+*.pyo
+*.pyd
+
+# Entornos virtuales
+venv/
+env/
+ENV/
+virtualenv/
+.venv/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+.hypothesis/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Ruff
+.ruff_cache/
+
+# ----------------------------------------------------------------------------
+# IDEs y Editores
+# ----------------------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ----------------------------------------------------------------------------
+# Documentación
+# ----------------------------------------------------------------------------
+*.md
+!README.md
+docs/
+*.rst
+*.txt
+!requirements.txt
+
+# ----------------------------------------------------------------------------
+# Logs y Temporales
+# ----------------------------------------------------------------------------
+logs/
+*.log
+log/
+*.log.*
+
+# Archivos temporales
+tmp/
+temp/
+*.tmp
+*.bak
+*.cache
+
+# ----------------------------------------------------------------------------
+# Docker
+# ----------------------------------------------------------------------------
+docker-compose*.yml
+!docker-compose.production.yml
+Dockerfile
+!Dockerfile.production
+.dockerignore
+
+# ----------------------------------------------------------------------------
+# CI/CD
+# ----------------------------------------------------------------------------
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+azure-pipelines.yml
+.circleci/
+
+# ----------------------------------------------------------------------------
+# Tests
+# ----------------------------------------------------------------------------
+tests/
+test/
+*_test.py
+test_*.py
+**/tests/
+**/test/
+
+# ----------------------------------------------------------------------------
+# Variables de Entorno y Secretos
+# ----------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.pfx
+secrets/
+
+# ----------------------------------------------------------------------------
+# Node (si aplica)
+# ----------------------------------------------------------------------------
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# ----------------------------------------------------------------------------
+# Build Artifacts
+# ----------------------------------------------------------------------------
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# ----------------------------------------------------------------------------
+# Databases
+# ----------------------------------------------------------------------------
+*.db
+*.sqlite
+*.sqlite3
+
+# ----------------------------------------------------------------------------
+# Archivos grandes y media
+# ----------------------------------------------------------------------------
+*.mp4
+*.avi
+*.mov
+*.zip
+*.tar.gz
+*.rar
+
+# ----------------------------------------------------------------------------
+# Específicos del proyecto
+# ----------------------------------------------------------------------------
+
+# Backup files
+backups/
+*.backup
+
+# Data files (no incluir en imagen)
+data/
+uploads/
+downloads/
+
+# Scripts de desarrollo
+scripts/dev/
+*.dev.sh
+
+# Archivos de configuración local
+local_config/
+.local/
+
+# ============================================================================
+# IMPORTANTE
+# ============================================================================
+#
+# Este archivo debe estar en la raíz del proyecto para que Docker lo use.
+#
+# Para verificar qué archivos se incluyen en el build context:
+#   docker build --no-cache --progress=plain -t test . 2>&1 | grep "^#"
+#
+# ============================================================================

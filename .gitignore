@@ -223,5 +223,6 @@ desktop.ini
 *.sublime-project
 *.sublime-workspace
 .claude/
-*.md
-!README.md
+CLAUDE.md
+COMMIT_MESSAGE.txt
+changes.txt

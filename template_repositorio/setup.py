@@ -1,15 +1,20 @@
 """
-Setup para repositorio_lib - Librería compartida
+Setup for repositorio_lib - Shared library
 """
 
 from setuptools import setup, find_packages
 
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
+
 setup(
     name="repositorio_lib",
     version="1.0.0",
-    description="Librería compartida para proyectos del ecosistema",
-    author="Tu Nombre",
-    author_email="tu@email.com",
+    description="Shared library for ecosystem projects",
+    author="Gustavo Pinto",
+    author_email="gpintov2001@gmail.com",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     packages=find_packages(),
     install_requires=[
         "sqlalchemy==2.0.41",
@@ -20,7 +25,7 @@ setup(
         "python-jose[cryptography]==3.4.0",
         "passlib[bcrypt]==1.7.4",
         "httpx==0.28.1",
-        "python-dotenv==1.0.1",
+        "rut-chile==2.0.1",
     ],
     python_requires=">=3.12",
 )

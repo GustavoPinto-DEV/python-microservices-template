@@ -1,0 +1,152 @@
+# ============================================================================
+# Prometheus Configuration
+# ============================================================================
+#
+# Configuración de Prometheus para scraping de métricas.
+#
+# Ubicación: docker/prometheus/prometheus.yml
+#
+# ============================================================================
+
+global:
+  scrape_interval: 15s # Cada 15 segundos
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'docker-prometheus'
+    environment: 'production'
+
+# Alertmanager configuration (opcional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093
+
+# Load rules (opcional - para alertas)
+# rule_files:
+#   - "rules/*.yml"
+
+# Scrape configurations
+scrape_configs:
+  # ========================================================================
+  # Prometheus self-monitoring
+  # ========================================================================
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # ========================================================================
+  # API Service
+  # ========================================================================
+  - job_name: 'api'
+    scrape_interval: 10s
+    metrics_path: '/metrics'
+    static_configs:
+      - targets:
+          - 'api:8000'
+        labels:
+          service: 'api'
+          environment: 'production'
+
+  # ========================================================================
+  # Web Service
+  # ========================================================================
+  - job_name: 'web'
+    scrape_interval: 10s
+    metrics_path: '/metrics'
+    static_configs:
+      - targets:
+          - 'web:8000'
+        labels:
+          service: 'web'
+          environment: 'production'
+
+  # ========================================================================
+  # Nginx
+  # ========================================================================
+  - job_name: 'nginx'
+    scrape_interval: 30s
+    static_configs:
+      - targets:
+          - 'nginx:80'
+        labels:
+          service: 'nginx'
+    # Requiere nginx-prometheus-exporter
+    # https://github.com/nginxinc/nginx-prometheus-exporter
+
+  # ========================================================================
+  # PostgreSQL
+  # ========================================================================
+  - job_name: 'postgres'
+    scrape_interval: 30s
+    static_configs:
+      - targets:
+          - 'postgres-exporter:9187'
+        labels:
+          service: 'postgres'
+    # Requiere postgres_exporter
+    # https://github.com/prometheus-community/postgres_exporter
+
+  # ========================================================================
+  # Redis
+  # ========================================================================
+  - job_name: 'redis'
+    scrape_interval: 30s
+    static_configs:
+      - targets:
+          - 'redis-exporter:9121'
+        labels:
+          service: 'redis'
+    # Requiere redis_exporter
+    # https://github.com/oliver006/redis_exporter
+
+  # ========================================================================
+  # Docker Containers (opcional)
+  # ========================================================================
+  # - job_name: 'cadvisor'
+  #   scrape_interval: 30s
+  #   static_configs:
+  #     - targets:
+  #         - 'cadvisor:8080'
+
+  # ========================================================================
+  # Node Exporter (métricas del host)
+  # ========================================================================
+  # - job_name: 'node-exporter'
+  #   scrape_interval: 30s
+  #   static_configs:
+  #     - targets:
+  #         - 'node-exporter:9100'
+  #       labels:
+  #         instance: 'production-server'
+
+# ============================================================================
+# NOTAS
+# ============================================================================
+#
+# 1. Métricas en FastAPI:
+#    Agregar prometheus_fastapi_instrumentator en el código:
+#
+#    from prometheus_fastapi_instrumentator import Instrumentator
+#
+#    app = FastAPI()
+#    Instrumentator().instrument(app).expose(app)
+#
+# 2. Para PostgreSQL metrics:
+#    Agregar postgres_exporter al docker-compose:
+#
+#    postgres-exporter:
+#      image: prometheuscommunity/postgres-exporter
+#      environment:
+#        DATA_SOURCE_NAME: "postgresql://user:pass@postgres:5432/db?sslmode=disable"
+#
+# 3. Para Redis metrics:
+#    Agregar redis_exporter al docker-compose:
+#
+#    redis-exporter:
+#      image: oliver006/redis_exporter
+#      environment:
+#        REDIS_ADDR: "redis:6379"
+#        REDIS_PASSWORD: "${REDIS_PASSWORD}"
+#
+# ============================================================================

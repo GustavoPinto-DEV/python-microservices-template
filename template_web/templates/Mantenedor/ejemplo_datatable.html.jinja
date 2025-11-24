@@ -1,40 +1,40 @@
 {#
-  EJEMPLO DE USO: DataTable con Server-Side Processing
+  EXAMPLE USAGE: DataTable with Server-Side Processing
 
-  Este template demuestra cómo usar datatable_base.html.jinja para crear
-  una tabla con procesamiento server-side.
+  This template demonstrates how to use datatable_base.html.jinja to create
+  a table with server-side processing.
 #}
 
 {% extends "Shared/datatable_base.html.jinja" %}
 
-{# Configuración de la página #}
-{% block page_title %}Ejemplo DataTable{% endblock %}
-{% block create_button_text %}Crear Registro{% endblock %}
-{% block create_button_id %}btnCrear{% endblock %}
+{# Page Configuration #}
+{% block page_title %}DataTable Example{% endblock %}
+{% block create_button_text %}Create Record{% endblock %}
+{% block create_button_id %}btnCreate{% endblock %}
 
-{# Código JavaScript para inicializar la DataTable #}
+{# JavaScript code to initialize the DataTable #}
 {% block datatable_js %}
 <script>
-  // URLs de los endpoints
-  const urlObtenerDatos = "/api/ejemplo/datos";
-  const urlCrearEditar = "/api/ejemplo/update";
+  // Endpoint URLs
+  const urlGetData = "/api/ejemplo/datos";
+  const urlCreateEdit = "/api/ejemplo/update";
 
   $(document).ready(function () {
-    cargarTabla();
+    loadTable();
 
-    // Evento para el botón crear
-    $("#btnCrear").click(function () {
-      mostrarModalCrearEditar({});
+    // Event for create button
+    $("#btnCreate").click(function () {
+      showCreateEditModal({});
     });
   });
 
   /**
-   * Inicializa la tabla con server-side processing
+   * Initialize the table with server-side processing
    */
-  function cargarTabla() {
-    // Usar el helper InicializarTablaServerSide del archivo datatable-serverside.js
+  function loadTable() {
+    // Use the InicializarTablaServerSide helper from datatable-serverside.js file
     InicializarTablaServerSide("#tabla", {
-      url: urlObtenerDatos,
+      url: urlGetData,
       responsive: ObtenerConfigResponsiveDataTable(),
       columns: [
         {
@@ -45,7 +45,7 @@
         },
         {
           data: "nombre",
-          title: "Nombre",
+          title: "Name",
           name: "nombre"
         },
         {
@@ -55,41 +55,41 @@
         },
         {
           data: "activo",
-          title: "Estado",
+          title: "Status",
           className: "text-center",
           name: "activo",
           render: (data) => RenderizarEstado(data)
         },
         {
           data: null,
-          title: "Acciones",
+          title: "Actions",
           className: "text-center",
           name: "acciones",
           orderable: false,
           searchable: false,
           render: function (data, type, row) {
             return (
-              RenderizarBotonEditar("mostrarModalCrearEditar", row) +
-              RenderizarBotonToggle("activarDesactivar", row, row.activo)
+              RenderizarBotonEditar("showCreateEditModal", row) +
+              RenderizarBotonToggle("toggleActivate", row, row.activo)
             );
           }
         }
       ],
-      defaultOrder: [[0, 'desc']], // ID descendente por defecto
+      defaultOrder: [[0, 'desc']], // ID descending by default
       pageLength: 25,
       onError: function (jqXHR, textStatus, errorThrown) {
-        console.error('Error al cargar datos:', textStatus, errorThrown);
-        MostrarError('Error al cargar datos', 'Ocurrió un error al obtener la información.');
+        console.error('Error loading data:', textStatus, errorThrown);
+        MostrarError('Error loading data', 'An error occurred while retrieving information.');
       }
     });
   }
 
   /**
-   * Muestra el modal para crear/editar un registro
+   * Show modal to create/edit a record
    */
-  function mostrarModalCrearEditar(row) {
+  function showCreateEditModal(row) {
     const isEditMode = !!row.id;
-    const titleText = isEditMode ? `Editar: ${row.nombre}` : "Crear Nuevo Registro";
+    const titleText = isEditMode ? `Edit: ${row.nombre}` : "Create New Record";
 
     Swal.fire({
       title: titleText,
@@ -98,10 +98,10 @@
           <div class="col-12 mb-3">
             <div class="input-group">
               <div class="input-group-prepend">
-                <label class="input-group-text" for="nombre">Nombre</label>
+                <label class="input-group-text" for="nombre">Name</label>
               </div>
               <input type="text" id="nombre" class="form-control"
-                value="${row.nombre || ''}" placeholder="Nombre">
+                value="${row.nombre || ''}" placeholder="Name">
               <div id="nombre_error" class="invalid-feedback"></div>
             </div>
           </div>
@@ -117,7 +117,7 @@
           </div>
           <div class="col mb-3 d-flex">
             <div class="input-group-prepend">
-              <label class="input-group-text" for="activo">Activo</label>
+              <label class="input-group-text" for="activo">Active</label>
             </div>
             <div class="form-control d-flex align-items-center justify-content-center"
               style="margin-left: -2px;">
@@ -132,11 +132,11 @@
       focusConfirm: false,
       showCancelButton: true,
       customClass: ObtenerSwalClasses(),
-      confirmButtonText: "Confirmar",
-      cancelButtonText: "Cancelar",
+      confirmButtonText: "Confirm",
+      cancelButtonText: "Cancel",
       reverseButtons: true,
       preConfirm: async () => {
-        // Validar campos
+        // Validate fields
         const fieldsToValidate = ["nombre", "email"];
         let allFieldsValid = true;
 
@@ -157,7 +157,7 @@
         row.activo = document.getElementById("activo").checked;
 
         if (!allFieldsValid) {
-          Swal.showValidationMessage("Por favor corrige los errores antes de continuar.");
+          Swal.showValidationMessage("Please correct the errors before continuing.");
           return false;
         }
 
@@ -165,46 +165,46 @@
       }
     }).then((result) => {
       if (result.isConfirmed) {
-        guardarRegistro(result.value);
+        saveRecord(result.value);
       }
     });
   }
 
   /**
-   * Guarda un registro (crear o editar)
+   * Save a record (create or edit)
    */
-  function guardarRegistro(data) {
+  function saveRecord(data) {
     $.ajax({
-      url: urlCrearEditar,
+      url: urlCreateEdit,
       type: "POST",
       contentType: "application/json",
       data: JSON.stringify(data),
       success: function (response) {
-        MostrarExitoTemporal("Operación realizada correctamente");
-        // Con server-side processing, simplemente recargamos la tabla
+        MostrarExitoTemporal("Operation completed successfully");
+        // With server-side processing, simply reload the table
         RecargarTablaServerSide("#tabla");
       },
       error: function (jqXHR) {
         const errorMessage = ExtraerMensajeError(jqXHR);
-        MostrarError("Ha ocurrido un error en el proceso", errorMessage);
+        MostrarError("An error occurred in the process", errorMessage);
       }
     });
   }
 
   /**
-   * Activa/Desactiva un registro
+   * Activate/Deactivate a record
    */
-  function activarDesactivar(row) {
-    const accion = row.activo ? "desactivar" : "activar";
+  function toggleActivate(row) {
+    const action = row.activo ? "deactivate" : "activate";
 
     MostrarConfirmacion(
-      `¿Estás seguro de ${accion}?`,
-      `Esta acción ${accion}á el registro.`,
-      `Sí, ${accion}`
+      `Are you sure you want to ${action}?`,
+      `This action will ${action} the record.`,
+      `Yes, ${action}`
     ).then((result) => {
       if (result.isConfirmed) {
         row.activo = !row.activo;
-        guardarRegistro(row);
+        saveRecord(row);
       }
     });
   }

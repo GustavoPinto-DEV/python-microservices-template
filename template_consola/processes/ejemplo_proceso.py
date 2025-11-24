@@ -1,265 +1,265 @@
 """
-Ejemplo de Proceso Batch
+Batch Process Example
 
-Este módulo muestra cómo implementar un proceso batch típico.
-Puedes usar este archivo como base para crear tus propios procesos.
+This module shows how to implement a typical batch process.
+You can use this file as a base to create your own processes.
 """
 
-import logging
 import asyncio
 from datetime import datetime
 from typing import List, Dict, Any
 
-# TODO: Descomentar cuando tengas repositorio_lib
+# Centralized logger
+from config.logger import logger
+
+# TODO: Uncomment when you have repositorio_lib
 # from repositorio_lib.core.database import get_async_session
 # from repositorio_lib.service.repository import v1Repositorio
 
-logger = logging.getLogger(__name__)
 
-
-async def ejecutar_proceso_ejemplo():
+async def execute_example_process():
     """
-    Proceso ejemplo que muestra estructura típica de un proceso batch.
+    Example process showing typical structure of a batch process.
 
-    Este proceso:
-    1. Consulta datos de la base de datos
-    2. Procesa los registros
-    3. Actualiza resultados en la base de datos
-    4. Registra métricas
+    This process:
+    1. Queries data from the database
+    2. Processes the records
+    3. Updates results in the database
+    4. Records metrics
     """
-    logger.info("📊 Iniciando proceso ejemplo...")
+    logger.info("📊 Starting example process...")
 
     try:
-        # Métricas del proceso
-        inicio = datetime.now()
-        procesados = 0
-        exitosos = 0
-        fallidos = 0
+        # Process metrics
+        start_time = datetime.now()
+        processed = 0
+        successful = 0
+        failed = 0
 
-        # Paso 1: Obtener datos a procesar
-        logger.info("1️⃣ Obteniendo datos a procesar...")
-        registros = await obtener_registros_pendientes()
-        logger.info(f"   Encontrados {len(registros)} registros pendientes")
+        # Step 1: Get data to process
+        logger.info("1️⃣ Getting data to process...")
+        records = await get_pending_records()
+        logger.info(f"   Found {len(records)} pending records")
 
-        if not registros:
-            logger.info("   No hay registros pendientes. Finalizando.")
+        if not records:
+            logger.info("   No pending records. Finishing.")
             return
 
-        # Paso 2: Procesar registros
-        logger.info("2️⃣ Procesando registros...")
-        for registro in registros:
+        # Step 2: Process records
+        logger.info("2️⃣ Processing records...")
+        for record in records:
             try:
-                await procesar_registro(registro)
-                exitosos += 1
+                await process_record(record)
+                successful += 1
             except Exception as e:
-                logger.error(f"   Error procesando registro {registro.get('id')}: {e}")
-                fallidos += 1
+                logger.error(f"   Error processing record {record.get('id')}: {e}")
+                failed += 1
             finally:
-                procesados += 1
+                processed += 1
 
-            # Progress log cada 10 registros
-            if procesados % 10 == 0:
-                logger.info(f"   Progreso: {procesados}/{len(registros)}")
+            # Progress log every 10 records
+            if processed % 10 == 0:
+                logger.info(f"   Progress: {processed}/{len(records)}")
 
-        # Paso 3: Registrar resultados
-        duracion = (datetime.now() - inicio).total_seconds()
-        logger.info("3️⃣ Proceso completado:")
-        logger.info(f"   Total procesados: {procesados}")
-        logger.info(f"   Exitosos: {exitosos}")
-        logger.info(f"   Fallidos: {fallidos}")
-        logger.info(f"   Duración: {duracion:.2f}s")
+        # Step 3: Record results
+        duration = (datetime.now() - start_time).total_seconds()
+        logger.info("3️⃣ Process completed:")
+        logger.info(f"   Total processed: {processed}")
+        logger.info(f"   Successful: {successful}")
+        logger.info(f"   Failed: {failed}")
+        logger.info(f"   Duration: {duration:.2f}s")
 
-        # TODO: Guardar métricas en BD si es necesario
-        # await guardar_metricas_proceso(procesados, exitosos, fallidos, duracion)
+        # TODO: Save process metrics to DB if needed
+        # await save_process_metrics(processed, successful, failed, duration)
 
     except Exception as e:
-        logger.error(f"❌ Error en proceso ejemplo: {e}", exc_info=True)
+        logger.error(f"❌ Error in example process: {e}", exc_info=True)
         raise
 
 
-async def obtener_registros_pendientes() -> List[Dict[str, Any]]:
+async def get_pending_records() -> List[Dict[str, Any]]:
     """
-    Obtiene registros pendientes de procesar desde la base de datos.
+    Get pending records to process from the database.
 
     Returns:
-        Lista de registros pendientes
+        List of pending records
     """
-    # TODO: Implementar consulta real a base de datos
+    # TODO: Implement real database query
     # async with get_async_session() as db:
     #     repositorio = v1Repositorio()
-    #     resultado = await repositorio.get_registros_pendientes(db)
-    #     return resultado.data
+    #     result = await repositorio.get_registros_pendientes(db)
+    #     return result.data
 
-    # Datos de ejemplo
-    await asyncio.sleep(0.5)  # Simular consulta DB
+    # Example data
+    await asyncio.sleep(0.5)  # Simulate DB query
     return [
-        {"id": 1, "nombre": "Registro 1", "valor": 100},
-        {"id": 2, "nombre": "Registro 2", "valor": 200},
-        {"id": 3, "nombre": "Registro 3", "valor": 300},
+        {"id": 1, "nombre": "Record 1", "valor": 100},
+        {"id": 2, "nombre": "Record 2", "valor": 200},
+        {"id": 3, "nombre": "Record 3", "valor": 300},
     ]
 
 
-async def procesar_registro(registro: Dict[str, Any]):
+async def process_record(record: Dict[str, Any]):
     """
-    Procesa un registro individual.
+    Process an individual record.
 
     Args:
-        registro: Datos del registro a procesar
+        record: Record data to process
     """
-    logger.debug(f"   Procesando registro {registro['id']}: {registro['nombre']}")
+    logger.debug(f"   Processing record {record['id']}: {record['nombre']}")
 
-    # TODO: Implementar lógica de procesamiento
-    # Ejemplos:
-    # - Validar datos
-    # - Calcular valores
-    # - Llamar APIs externas
-    # - Actualizar base de datos
+    # TODO: Implement processing logic
+    # Examples:
+    # - Validate data
+    # - Calculate values
+    # - Call external APIs
+    # - Update database
 
-    # Simular procesamiento
+    # Simulate processing
     await asyncio.sleep(0.1)
 
-    # Ejemplo: Actualizar en BD
+    # Example: Update in DB
     # async with get_async_session() as db:
     #     await repositorio.actualizar_registro(
     #         db,
-    #         registro['id'],
+    #         record['id'],
     #         {"procesado": True, "fecha_proceso": datetime.now()}
     #     )
     #     await db.commit()
 
-    logger.debug(f"   ✓ Registro {registro['id']} procesado exitosamente")
+    logger.debug(f"   ✓ Record {record['id']} processed successfully")
 
 
-# Ejemplos de otros tipos de procesos comunes
+# Examples of other common process types
 
-async def proceso_integracion_api():
+async def api_integration_process():
     """
-    Ejemplo de integración con API externa.
+    Example of external API integration.
     """
     import httpx
 
-    logger.info("🌐 Iniciando integración con API externa...")
+    logger.info("🌐 Starting external API integration...")
 
     try:
         async with httpx.AsyncClient() as client:
-            # Llamar API externa
+            # Call external API
             response = await client.get("https://api.example.com/data")
             response.raise_for_status()
-            datos = response.json()
+            data = response.json()
 
-            # Procesar datos
-            logger.info(f"Recibidos {len(datos)} registros de API")
+            # Process data
+            logger.info(f"Received {len(data)} records from API")
 
-            # Guardar en BD
+            # Save to DB
             # async with get_async_session() as db:
-            #     for item in datos:
+            #     for item in data:
             #         await repositorio.crear_o_actualizar(db, item)
             #     await db.commit()
 
-            logger.info("✅ Integración API completada")
+            logger.info("✅ API integration completed")
 
     except httpx.HTTPStatusError as e:
-        logger.error(f"Error HTTP en API externa: {e.response.status_code}")
+        logger.error(f"HTTP error in external API: {e.response.status_code}")
         raise
     except Exception as e:
-        logger.error(f"Error en integración API: {e}", exc_info=True)
+        logger.error(f"Error in API integration: {e}", exc_info=True)
         raise
 
 
-async def proceso_limpieza_datos():
+async def data_cleanup_process():
     """
-    Ejemplo de proceso de limpieza/mantenimiento de datos.
+    Example of data cleanup/maintenance process.
     """
-    logger.info("🧹 Iniciando limpieza de datos...")
+    logger.info("🧹 Starting data cleanup...")
 
     try:
-        # Ejemplo: Eliminar registros antiguos
-        dias_retencion = 90
+        # Example: Delete old records
+        retention_days = 90
 
         # async with get_async_session() as db:
-        #     fecha_limite = datetime.now() - timedelta(days=dias_retencion)
+        #     cutoff_date = datetime.now() - timedelta(days=retention_days)
         #
-        #     # Eliminar registros antiguos
-        #     resultado = await repositorio.eliminar_registros_antiguos(
+        #     # Delete old records
+        #     result = await repositorio.eliminar_registros_antiguos(
         #         db,
-        #         fecha_limite
+        #         cutoff_date
         #     )
         #
         #     await db.commit()
-        #     logger.info(f"Eliminados {resultado.count} registros antiguos")
+        #     logger.info(f"Deleted {result.count} old records")
 
-        # Ejemplo: Limpiar duplicados
-        # await limpiar_duplicados(db)
+        # Example: Clean duplicates
+        # await clean_duplicates(db)
 
-        logger.info("✅ Limpieza completada")
+        logger.info("✅ Cleanup completed")
 
     except Exception as e:
-        logger.error(f"Error en limpieza de datos: {e}", exc_info=True)
+        logger.error(f"Error in data cleanup: {e}", exc_info=True)
         raise
 
 
-async def proceso_generacion_reporte():
+async def report_generation_process():
     """
-    Ejemplo de generación de reporte.
+    Example of report generation.
     """
-    logger.info("📋 Generando reporte...")
+    logger.info("📋 Generating report...")
 
     try:
-        # Recopilar datos
+        # Collect data
         # async with get_async_session() as db:
-        #     datos = await repositorio.obtener_datos_reporte(db)
+        #     data = await repositorio.obtener_datos_reporte(db)
 
-        # Generar reporte (CSV, PDF, Excel, etc.)
+        # Generate report (CSV, PDF, Excel, etc.)
         # import pandas as pd
-        # df = pd.DataFrame(datos)
-        # df.to_csv(f"reporte_{datetime.now().strftime('%Y%m%d')}.csv")
+        # df = pd.DataFrame(data)
+        # df.to_csv(f"report_{datetime.now().strftime('%Y%m%d')}.csv")
 
-        # Enviar por email
-        # await enviar_email_con_reporte(archivo_reporte)
+        # Send via email
+        # await send_email_with_report(report_file)
 
-        logger.info("✅ Reporte generado y enviado")
+        logger.info("✅ Report generated and sent")
 
     except Exception as e:
-        logger.error(f"Error generando reporte: {e}", exc_info=True)
+        logger.error(f"Error generating report: {e}", exc_info=True)
         raise
 
 
-async def proceso_batch_paralelo():
+async def parallel_batch_process():
     """
-    Ejemplo de procesamiento batch en paralelo.
+    Example of parallel batch processing.
     """
-    logger.info("⚡ Iniciando procesamiento paralelo...")
+    logger.info("⚡ Starting parallel processing...")
 
     try:
-        # Obtener registros a procesar
-        registros = await obtener_registros_pendientes()
+        # Get records to process
+        records = await get_pending_records()
 
-        # Procesar en lotes paralelos
+        # Process in parallel batches
         batch_size = 10
-        for i in range(0, len(registros), batch_size):
-            lote = registros[i:i + batch_size]
+        for i in range(0, len(records), batch_size):
+            batch = records[i:i + batch_size]
 
-            # Procesar lote en paralelo
-            tareas = [procesar_registro(reg) for reg in lote]
-            resultados = await asyncio.gather(*tareas, return_exceptions=True)
+            # Process batch in parallel
+            tasks = [process_record(rec) for rec in batch]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
 
-            # Contar éxitos y errores
-            exitosos = sum(1 for r in resultados if not isinstance(r, Exception))
-            errores = len(resultados) - exitosos
+            # Count successes and errors
+            successful = sum(1 for r in results if not isinstance(r, Exception))
+            errors = len(results) - successful
 
-            logger.info(f"Lote {i//batch_size + 1}: {exitosos} ok, {errores} errores")
+            logger.info(f"Batch {i//batch_size + 1}: {successful} ok, {errors} errors")
 
-        logger.info("✅ Procesamiento paralelo completado")
+        logger.info("✅ Parallel processing completed")
 
     except Exception as e:
-        logger.error(f"Error en procesamiento paralelo: {e}", exc_info=True)
+        logger.error(f"Error in parallel processing: {e}", exc_info=True)
         raise
 
 
-# TODO: Agregar tus propios procesos aquí
-# Ejemplos adicionales:
-# - Sincronización SFTP
-# - Envío de notificaciones
-# - Cálculos estadísticos
-# - Detección de anomalías
-# - Actualización de caché
+# TODO: Add your own processes here
+# Additional examples:
+# - SFTP synchronization
+# - Notification sending
+# - Statistical calculations
+# - Anomaly detection
+# - Cache updates
