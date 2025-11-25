@@ -7,7 +7,7 @@ Generic template for console/batch services based on asyncio for background proc
 - ✅ Asynchronous execution with asyncio
 - ✅ Continuous or scheduled batch processing
 - ✅ Graceful signal handling (SIGINT, SIGTERM)
-- ✅ Structured logging with rotation
+- ✅ Dual logging system (simple `logger` + `structured_logger` with context)
 - ✅ Asynchronous PostgreSQL connection
 - ✅ Automatic retries with exponential backoff
 - ✅ Integration with external services (APIs, SFTP)
@@ -19,7 +19,6 @@ Generic template for console/batch services based on asyncio for background proc
 template_consola/
 ├── main.py                    # Entry point
 ├── requirements.txt           # Python dependencies
-├── .env.example               # Environment variables (copy to .env)
 ├── Dockerfile                 # Docker container
 ├── PROCESOS_PARALELOS.md      # ⭐ Parallel execution guide
 ├── config/
@@ -38,6 +37,8 @@ template_consola/
 └── schema/
     └── schemas.py            # Pydantic schemas
 ```
+
+**⚠️ NOTE:** This template does NOT have its own `.env.example` file. All environment variables are centrally managed in `../template_repositorio/repositorio_lib/config/.env.example`
 
 ## Use Cases
 
@@ -151,23 +152,46 @@ ENABLE_CONTINUOUS_MODE=false
 ```python
 # processes/my_process.py
 
-import logging
-
-logger = logging.getLogger(__name__)
+from config.logger import logger, structured_logger
+from datetime import datetime
 
 async def execute_my_process():
     """
-    Executes batch process logic.
+    Executes batch process logic with structured logging.
     """
+    start_time = datetime.now()
+    job_id = f"my_process_{start_time.strftime('%Y%m%d_%H%M%S')}"
+
+    # Set context for all logs in this process
+    structured_logger.set_context(
+        job_id=job_id,
+        execution_date=start_time.isoformat(),
+        process_name="my_process"
+    )
+
     logger.info("Starting my process...")
 
-    # Your logic here
-    # - Query database
-    # - Process records
-    # - Call external APIs
-    # - Etc.
+    try:
+        # Your logic here
+        # - Query database
+        # - Process records
+        # - Call external APIs
 
-    logger.info("Process completed successfully")
+        # Log progress with metrics
+        structured_logger.info(
+            "Batch process completed",
+            records_total=100,
+            processed=100,
+            successful=95,
+            failed=5,
+            duration_seconds=round((datetime.now() - start_time).total_seconds(), 2),
+            status="completed",
+            event_type="batch_completed"
+        )
+
+        logger.info("Process completed successfully")
+    finally:
+        structured_logger.clear_context()
 ```
 
 ### 2. Register in `service/servicio.py`
@@ -271,18 +295,97 @@ pip install -e ../repositorio_lib
 
 ```python
 # Configuration
-from repositorio_lib.config.settings import db_settings, app_settings
+from repositorio_lib.config.settings import db_settings, app_settings, console_settings
 
-# Database and utilities
+# Core infrastructure
 from repositorio_lib.core.database import get_async_session
-from repositorio_lib.core.logger import setup_logger
-from repositorio_lib.service.repository import v1Repositorio
-from repositorio_lib.utils import retry_with_backoff
+from repositorio_lib.core import setup_logger, log_performance
 
-# Usage example
+# Data access
+from repositorio_lib.service.repository import v1Repository
+
+# Utilities
+from repositorio_lib.utils import retry_with_backoff, get_all_async, send_email
+
+# Logging (in your template)
+from config.logger import logger, structured_logger
+
+# Usage examples
 db_url = db_settings.get_connection_string(async_mode=True)
 log_dir = app_settings.get_log_dir()
+batch_size = console_settings.BATCH_SIZE
+max_retries = console_settings.MAX_RETRIES
 ```
+
+## Logging
+
+This template includes a dual logging system optimized for batch processing:
+
+### Simple Logger (`logger`)
+
+Use for application lifecycle, debug traces, and infrastructure operations:
+
+```python
+from config.logger import logger
+
+logger.info("Starting batch service...")
+logger.debug("Connecting to database")
+logger.error("Connection failed", exc_info=True)
+```
+
+### Structured Logger (`structured_logger`)
+
+Use for batch metrics, job tracking, and business events:
+
+```python
+from config.logger import structured_logger
+
+# Set context for entire batch job
+structured_logger.set_context(
+    job_id="batch_20250125_120000",
+    execution_date="2025-01-25T12:00:00",
+    process_name="data_sync"
+)
+
+# Log progress with metrics
+structured_logger.info(
+    "Processing progress",
+    processed=500,
+    total=1000,
+    successful=490,
+    failed=10,
+    progress_percentage=50.0,
+    event_type="batch_progress"
+)
+
+# Log final results
+structured_logger.info(
+    "Batch completed",
+    records_total=1000,
+    processed=1000,
+    successful=980,
+    failed=20,
+    duration_seconds=145.32,
+    success_rate=98.0,
+    status="completed",
+    event_type="batch_completed"
+)
+
+# Always clear context when done
+structured_logger.clear_context()
+```
+
+### When to Use Each
+
+- **Use `logger`**: Service startup/shutdown, signal handling, retry attempts, cache operations
+- **Use `structured_logger`**: Batch cycles, job metrics, record processing, business events
+
+### Log Files
+
+- Development: `./logs/YYYY-MM-DD/template_consola.log`
+- Production: `/var/log/app/logs/YYYY-MM-DD/template_consola.log`
+- Daily rotation with automatic folder creation at midnight
+- Thread-safe for async operations
 
 ## Process Examples
 

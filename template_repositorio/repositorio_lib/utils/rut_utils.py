@@ -24,7 +24,9 @@ Examples:
 
 from typing import Optional, Tuple
 from rut_chile import rut_chile
-from repositorio_lib.core import logger
+
+# Direct import to avoid circular dependency
+from repositorio_lib.config import logger
 
 
 # ============================================================================
@@ -225,7 +227,9 @@ def format_complete_rut(base_number: str, verification_digit: str) -> str:
         return ""
 
     try:
-        concatenated_rut = f"{str(base_number).strip()}-{str(verification_digit).strip()}"
+        concatenated_rut = (
+            f"{str(base_number).strip()}-{str(verification_digit).strip()}"
+        )
 
         if concatenated_rut == "-":
             return ""

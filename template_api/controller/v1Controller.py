@@ -11,8 +11,8 @@ Pattern: Router → Controller → Repository → Database
 from fastapi import HTTPException, status
 from typing import List
 
-# Centralized logger
-from config.logger import logger
+# Centralized loggers
+from config.logger import logger, structured_logger
 
 # Schemas
 from schema.schemas import (
@@ -57,7 +57,12 @@ class v1Controller:
             HTTPException: If credentials are invalid
         """
         try:
-            logger.info(f"Login attempt for user: {request.username}")
+            # Use structured logger for login attempts (business event)
+            structured_logger.info(
+                "Login attempt",
+                username=request.username,
+                event_type="authentication"
+            )
 
             # TODO: Implement real authentication with repository
             # result = await self.repositorio.login_api(
@@ -75,14 +80,24 @@ class v1Controller:
 
             # Temporary implementation for testing
             if request.username == "admin" and request.password == "admin":
-                logger.info(f"Successful login for: {request.username}")
+                structured_logger.info(
+                    "Login successful",
+                    username=request.username,
+                    event_type="authentication",
+                    status="success"
+                )
                 return LoginResponse(
                     access_token="temporary-token-change-to-real-jwt",
                     token_type="bearer",
                     username=request.username
                 )
             else:
-                logger.warning(f"Failed login for: {request.username}")
+                structured_logger.warning(
+                    "Login failed - invalid credentials",
+                    username=request.username,
+                    event_type="authentication",
+                    status="failed"
+                )
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid credentials",
@@ -113,7 +128,8 @@ class v1Controller:
             HTTPException: If there's an error in the query
         """
         try:
-            logger.info("Getting list of items")
+            # Use structured logger for CRUD operations
+            structured_logger.info("Fetching items list", operation="read", resource="items")
 
             # TODO: Implement with real repository
             # result = await self.repositorio.get_all("Item")
@@ -155,7 +171,7 @@ class v1Controller:
             HTTPException 404: If item doesn't exist
         """
         try:
-            logger.info(f"Getting item with ID: {item_id}")
+            structured_logger.info("Fetching item by ID", operation="read", resource="item", item_id=item_id)
 
             # TODO: Implement with repository
             # result = await self.repositorio.get_one("Item", item_id)
@@ -205,7 +221,7 @@ class v1Controller:
             HTTPException: If there's an error creating the item
         """
         try:
-            logger.info(f"Creating new item: {request.name}")
+            structured_logger.info("Creating new item", operation="create", resource="item", item_name=request.name)
 
             # Business validations
             if not request.name or len(request.name) < 3:
@@ -257,7 +273,7 @@ class v1Controller:
             HTTPException: If item doesn't exist or there's an error
         """
         try:
-            logger.info(f"Updating item {item_id}")
+            structured_logger.info("Updating item", operation="update", resource="item", item_id=item_id)
 
             # Verify that item exists
             # await self.get_item(item_id)  # Raises 404 if it doesn't exist
@@ -301,7 +317,7 @@ class v1Controller:
             HTTPException: If item doesn't exist or there's an error
         """
         try:
-            logger.info(f"Deleting item {item_id}")
+            structured_logger.info("Deleting item", operation="delete", resource="item", item_id=item_id)
 
             # Verify that item exists
             # await self.get_item(item_id)
@@ -315,7 +331,7 @@ class v1Controller:
             #         detail=result.message
             #     )
 
-            logger.info(f"Item {item_id} deleted successfully")
+            structured_logger.info("Item deleted successfully", operation="delete", resource="item", item_id=item_id, status="success")
 
         except HTTPException:
             raise

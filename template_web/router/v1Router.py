@@ -7,6 +7,9 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from controller.v1Controller import v1Controller
 from dependencies.auth import get_current_user_cookie
 
+# Centralized loggers
+from config.logger import logger, structured_logger
+
 router = APIRouter()
 
 def get_templates(request: Request):
@@ -21,12 +24,28 @@ def get_controller() -> v1Controller:
 @router.get("/", response_class=HTMLResponse)
 async def home(request: Request, templates=Depends(get_templates)):
     """Home page"""
+    # Log page view with structured logger
+    structured_logger.info(
+        "Page accessed",
+        page="/",
+        method="GET",
+        event_type="page_view"
+    )
+
     return templates.TemplateResponse("index.html", {"request": request})
 
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request, templates=Depends(get_templates)):
     """Login page"""
+    # Log page view
+    structured_logger.info(
+        "Page accessed",
+        page="/login",
+        method="GET",
+        event_type="page_view"
+    )
+
     return templates.TemplateResponse("login.html", {"request": request})
 
 
@@ -63,6 +82,14 @@ async def login(
 @router.get("/logout")
 async def logout():
     """Close session"""
+    # Log logout action
+    structured_logger.info(
+        "User logged out",
+        event_type="authentication",
+        action="logout",
+        status="success"
+    )
+
     response = RedirectResponse("/login", status_code=303)
     response.delete_cookie("session_token")
     return response
@@ -77,6 +104,15 @@ async def dashboard(
     templates=Depends(get_templates)
 ):
     """Main dashboard (requires authentication)"""
+    # Log authenticated page access with user context
+    structured_logger.info(
+        "Page accessed (authenticated)",
+        page="/dashboard",
+        method="GET",
+        username=user.get("username"),
+        event_type="page_view"
+    )
+
     return templates.TemplateResponse(
         "dashboard.html",
         {"request": request, "user": user}

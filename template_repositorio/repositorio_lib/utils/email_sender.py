@@ -9,8 +9,9 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import List, Optional
 
-from repositorio_lib.core import logger, log_performance
-from repositorio_lib.config import email_settings
+# Direct imports to avoid circular dependency
+from repositorio_lib.core import log_performance
+from repositorio_lib.config import email_settings, logger
 
 
 def send_email(

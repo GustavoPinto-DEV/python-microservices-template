@@ -1,10 +1,14 @@
 """Utilidades compartidas"""
+
 import asyncio
-import logging
 
-logger = logging.getLogger(__name__)
+# Direct import to avoid circular dependency
+from repositorio_lib.config import logger
 
-async def reintentar_hasta_exito(funcion, nombre: str = "Operación", max_intentos: int = 3, delay_inicial: int = 5):
+
+async def reintentar_hasta_exito(
+    funcion, nombre: str = "Operación", max_intentos: int = 3, delay_inicial: int = 5
+):
     """Ejecuta función con reintentos"""
     for intento in range(1, max_intentos + 1):
         try:
@@ -20,5 +24,6 @@ async def reintentar_hasta_exito(funcion, nombre: str = "Operación", max_intent
                 await asyncio.sleep(delay)
             else:
                 raise
+
 
 # TODO: Agregar más utilidades compartidas

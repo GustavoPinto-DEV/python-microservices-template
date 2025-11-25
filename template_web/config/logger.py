@@ -1,28 +1,40 @@
 """
 Centralized Logger - Web Template
 
-This module configures and exports the application's single logger.
-ALL modules should import the logger from here.
+This module configures and exports TWO logger instances for different use cases.
+ALL modules must import the appropriate logger from here.
 
-Usage in any module:
+Available Loggers:
+    1. logger: Standard logger for simple lifecycle events
+    2. structured_logger: Structured logger for web requests and user actions
+
+Usage Examples:
+
+    # Standard logger - For simple events
     from config.logger import logger
+    logger.info("Web application started")
+    logger.debug("Rendering template: dashboard.html")
+    logger.error("Template not found", exc_info=True)
 
-    logger.info("Log message")
-    logger.error("Error occurred", exc_info=True)
+    # Structured logger - For user actions and web requests
+    from config.logger import structured_logger
+    structured_logger.set_context(session_id="xyz789", user_id=456)
+    structured_logger.info("Page accessed", page="/dashboard", method="GET")
+    structured_logger.info("Form submitted", form="contact", fields=5)
+    structured_logger.clear_context()
+
+When to use each:
+    - logger: Application startup/shutdown, template rendering, static file serving
+    - structured_logger: User sessions, page views, form submissions, any user action
 """
 
-import logging
+from repositorio_lib.core import get_logger, get_structured_logger
 
-# Uncomment when you have repositorio_lib installed
-# from repositorio_lib.core.logger import setup_logger
-# logger = setup_logger("template_web", level=logging.INFO, log_to_file=True)
+# Standard logger for simple lifecycle events
+logger = get_logger("template_web")
 
-# Basic temporary logger (until you install repositorio_lib)
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)-8s | %(name)s | %(funcName)s:%(lineno)d | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-logger = logging.getLogger("template_web")
+# Structured logger for web requests and user actions with context
+structured_logger = get_structured_logger("template_web")
 
-__all__ = ["logger"]
+
+__all__ = ["logger", "structured_logger"]

@@ -5,13 +5,12 @@ Helper functions and utilities specific to this console service.
 For utilities shared between projects, use repositorio_lib/utils/
 """
 
-import logging
 import asyncio
 from typing import Optional, Callable, Any
 from datetime import datetime
 import httpx
 
-logger = logging.getLogger(__name__)
+from config.logger import logger
 
 
 async def retry_operation(

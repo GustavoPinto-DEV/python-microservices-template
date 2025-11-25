@@ -15,8 +15,8 @@ from repositorio_lib.schema.base_schema import *
 from repositorio_lib.schema.complete_schema import *
 from repositorio_lib.schema.relationships import *
 
-# project
-from repositorio_lib.core.crud_helpers import get_pk_name
+# utils
+from repositorio_lib.utils.crud_helpers import get_pk_name
 
 
 @dataclass

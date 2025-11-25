@@ -9,7 +9,9 @@ import functools
 import time
 from typing import Any, Callable, Optional, Tuple, Type
 
-from repositorio_lib.core import logger, log_performance
+# Direct imports to avoid circular dependency
+from repositorio_lib.core import log_performance
+from repositorio_lib.config import logger
 
 
 def retry_with_exponential_backoff(

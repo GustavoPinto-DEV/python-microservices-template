@@ -13,8 +13,8 @@ from fastapi.responses import JSONResponse
 from datetime import datetime, timedelta
 from collections import defaultdict
 
-# Logger centralizado
-from config.logger import logger
+# Centralized loggers
+from config.logger import logger, structured_logger
 
 
 class RateLimiterMiddleware(BaseHTTPMiddleware):
@@ -69,7 +69,14 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         is_allowed, remaining = self._check_rate_limit(client_ip)
 
         if not is_allowed:
-            logger.warning(f"Rate limit excedido para IP: {client_ip}")
+            # Use structured logger for rate limit events (important for security monitoring)
+            structured_logger.warning(
+                "Rate limit exceeded",
+                client_ip=client_ip,
+                path=str(request.url.path),
+                method=request.method,
+                event_type="rate_limit_exceeded"
+            )
             return JSONResponse(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 content={

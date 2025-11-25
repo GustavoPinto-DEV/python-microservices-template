@@ -8,8 +8,8 @@ Simulates a cleanup and maintenance process.
 import asyncio
 from datetime import datetime
 
-# Centralized logger
-from config.logger import logger
+# Centralized loggers
+from config.logger import logger, structured_logger
 
 
 async def ejecutar_proceso_c():
@@ -25,6 +25,16 @@ async def ejecutar_proceso_c():
     logger.info("🟡 [PROCESS C] Starting...")
 
     try:
+        start_time = datetime.now()
+
+        # Set context for this process
+        structured_logger.set_context(
+            process_name="Process C",
+            execution_date=start_time.isoformat()
+        )
+
+        structured_logger.info("Process C started", event_type="process_start")
+
         # Simulate record cleanup
         logger.info("🟡 [PROCESS C] Deleting old records (>90 days)...")
         await asyncio.sleep(2)
@@ -43,9 +53,30 @@ async def ejecutar_proceso_c():
         logger.info("🟡 [PROCESS C] Generating maintenance log...")
         await asyncio.sleep(0.5)
 
-        # Complete
+        # Complete - log with metrics
+        duration = (datetime.now() - start_time).total_seconds()
         logger.info(f"✅ [PROCESS C] Completed successfully - {deleted_records} records cleaned")
+
+        structured_logger.info(
+            "Process C completed successfully",
+            records_deleted=deleted_records,
+            cleanup_tasks_completed=4,
+            duration_seconds=round(duration, 2),
+            status="success",
+            event_type="process_completed"
+        )
+        structured_logger.clear_context()
 
     except Exception as e:
         logger.error(f"❌ [PROCESS C] Error: {e}", exc_info=True)
+
+        # Log error with structured logger
+        structured_logger.error(
+            "Process C failed",
+            error=str(e),
+            status="error",
+            event_type="process_error"
+        )
+        structured_logger.clear_context()
+
         raise

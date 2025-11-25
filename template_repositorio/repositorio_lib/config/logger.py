@@ -31,10 +31,7 @@ When to use each:
 from repositorio_lib.core import get_logger, get_structured_logger
 
 # Standard logger for simple lifecycle events
-logger = get_logger("template_api")
+logger = get_logger("template_repositorio")
 
 # Structured logger for business operations with context fields
-structured_logger = get_structured_logger("template_api")
-
-
-__all__ = ["logger", "structured_logger"]
+structured_logger = get_structured_logger("template_repositorio")

@@ -9,8 +9,8 @@ import asyncio
 from datetime import datetime
 from typing import List, Dict, Any
 
-# Centralized logger
-from config.logger import logger
+# Centralized loggers
+from config.logger import logger, structured_logger
 
 # TODO: Uncomment when you have repositorio_lib
 # from repositorio_lib.core.database import get_async_session
@@ -36,13 +36,31 @@ async def execute_example_process():
         successful = 0
         failed = 0
 
+        # Set context for this batch job
+        job_id = f"example_batch_{start_time.strftime('%Y%m%d_%H%M%S')}"
+        structured_logger.set_context(
+            job_id=job_id,
+            execution_date=start_time.isoformat(),
+            process_name="example_process"
+        )
+
+        structured_logger.info("Batch process started", event_type="batch_start")
+
         # Step 1: Get data to process
         logger.info("1️⃣ Getting data to process...")
         records = await get_pending_records()
         logger.info(f"   Found {len(records)} pending records")
 
+        structured_logger.info(
+            "Records fetched",
+            records_total=len(records),
+            event_type="data_fetched"
+        )
+
         if not records:
             logger.info("   No pending records. Finishing.")
+            structured_logger.info("No records to process", records_total=0, event_type="batch_skipped")
+            structured_logger.clear_context()
             return
 
         # Step 2: Process records
@@ -60,6 +78,15 @@ async def execute_example_process():
             # Progress log every 10 records
             if processed % 10 == 0:
                 logger.info(f"   Progress: {processed}/{len(records)}")
+                structured_logger.info(
+                    "Processing progress",
+                    processed=processed,
+                    total=len(records),
+                    successful=successful,
+                    failed=failed,
+                    progress_percentage=round((processed / len(records)) * 100, 2),
+                    event_type="batch_progress"
+                )
 
         # Step 3: Record results
         duration = (datetime.now() - start_time).total_seconds()
@@ -69,11 +96,39 @@ async def execute_example_process():
         logger.info(f"   Failed: {failed}")
         logger.info(f"   Duration: {duration:.2f}s")
 
+        # Log final metrics with structured logger
+        structured_logger.info(
+            "Batch process completed",
+            records_total=len(records),
+            processed=processed,
+            successful=successful,
+            failed=failed,
+            duration_seconds=round(duration, 2),
+            success_rate=round((successful / processed) * 100, 2) if processed > 0 else 0,
+            status="completed",
+            event_type="batch_completed"
+        )
+
+        structured_logger.clear_context()
+
         # TODO: Save process metrics to DB if needed
         # await save_process_metrics(processed, successful, failed, duration)
 
     except Exception as e:
         logger.error(f"❌ Error in example process: {e}", exc_info=True)
+
+        # Log error with structured logger
+        structured_logger.error(
+            "Batch process failed",
+            error=str(e),
+            processed=processed,
+            successful=successful,
+            failed=failed,
+            status="error",
+            event_type="batch_error"
+        )
+        structured_logger.clear_context()
+
         raise
 
 

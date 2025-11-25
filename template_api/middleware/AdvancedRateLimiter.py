@@ -17,8 +17,8 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 import re
 
-# Logger centralizado
-from config.logger import logger
+# Centralized loggers
+from config.logger import logger, structured_logger
 
 
 class RateLimitRule:
@@ -241,7 +241,16 @@ class AdvancedRateLimiter(BaseHTTPMiddleware):
 
         # Si excedió el límite, retornar 429
         if not is_allowed:
-            logger.warning(f"Rate limit excedido para: {rate_key}")
+            # Use structured logger for rate limit events
+            structured_logger.warning(
+                "Rate limit exceeded (advanced)",
+                rate_key=rate_key,
+                path=str(request.url.path),
+                method=request.method,
+                max_requests=max_requests,
+                window_seconds=window_seconds,
+                event_type="rate_limit_exceeded"
+            )
             return JSONResponse(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 content={

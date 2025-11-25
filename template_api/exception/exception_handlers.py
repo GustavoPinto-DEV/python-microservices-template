@@ -11,8 +11,8 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from datetime import datetime
 
-# Centralized logger
-from config.logger import logger
+# Centralized loggers
+from config.logger import logger, structured_logger
 
 
 def register_exception_handlers(app: FastAPI) -> None:
@@ -28,9 +28,14 @@ def register_exception_handlers(app: FastAPI) -> None:
         """
         Handle standard HTTP exceptions (404, 403, etc.)
         """
-        logger.warning(
-            f"HTTP Exception: {exc.status_code} - {exc.detail} - "
-            f"Path: {request.url.path} - Method: {request.method}"
+        # Use structured logger for HTTP exceptions (queryable in production)
+        structured_logger.warning(
+            "HTTP exception",
+            status_code=exc.status_code,
+            detail=exc.detail,
+            path=str(request.url.path),
+            method=request.method,
+            event_type="http_error"
         )
 
         return JSONResponse(
@@ -58,9 +63,13 @@ def register_exception_handlers(app: FastAPI) -> None:
                 "type": error["type"]
             })
 
-        logger.warning(
-            f"Validation Error - Path: {request.url.path} - "
-            f"Errors: {len(errors)}"
+        # Use structured logger for validation errors
+        structured_logger.warning(
+            "Validation error",
+            path=str(request.url.path),
+            method=request.method,
+            error_count=len(errors),
+            event_type="validation_error"
         )
 
         return JSONResponse(
@@ -80,9 +89,12 @@ def register_exception_handlers(app: FastAPI) -> None:
         Handle value errors (ValueError).
         Typically used for business validations.
         """
-        logger.warning(
-            f"Value Error - Path: {request.url.path} - "
-            f"Error: {str(exc)}"
+        structured_logger.warning(
+            "Value error",
+            path=str(request.url.path),
+            method=request.method,
+            error=str(exc),
+            event_type="value_error"
         )
 
         return JSONResponse(
@@ -100,9 +112,12 @@ def register_exception_handlers(app: FastAPI) -> None:
         """
         Handle permission errors.
         """
-        logger.warning(
-            f"Permission Error - Path: {request.url.path} - "
-            f"Error: {str(exc)}"
+        structured_logger.warning(
+            "Permission denied",
+            path=str(request.url.path),
+            method=request.method,
+            error=str(exc),
+            event_type="permission_error"
         )
 
         return JSONResponse(

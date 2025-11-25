@@ -13,8 +13,8 @@ from pydantic import BaseModel
 # schema
 from repositorio_lib.schema import Result
 
-# logging
-from repositorio_lib.core import logger
+# logging - Direct import to avoid circular dependency
+from repositorio_lib.config import logger
 
 
 def get_pk_name(model: Type[DeclarativeBase]) -> str:

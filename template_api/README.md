@@ -9,7 +9,7 @@ Generic template for creating REST APIs with FastAPI, designed for enterprise pr
 - ✅ Response compression middleware (gzip)
 - ✅ Optional rate limiting
 - ✅ Centralized exception handling
-- ✅ Structured logging
+- ✅ Dual logging system (simple `logger` + `structured_logger` with context)
 - ✅ Asynchronous PostgreSQL connection (optional)
 - ✅ Clean architecture (Router → Controller → Repository)
 - ✅ Docker ready
@@ -21,7 +21,6 @@ Generic template for creating REST APIs with FastAPI, designed for enterprise pr
 template_api/
 ├── main.py              # Entry point
 ├── requirements.txt     # Python dependencies
-├── .env.example         # Environment variables (copy to .env)
 ├── Dockerfile          # Docker container
 ├── config/
 │   └── env.py          # Global environment variables
@@ -40,6 +39,8 @@ template_api/
 └── schema/
     └── schemas.py      # Pydantic schemas
 ```
+
+**⚠️ NOTE:** This template does NOT have its own `.env.example` file. All environment variables are centrally managed in `../template_repositorio/repositorio_lib/config/.env.example`
 
 ## Installation
 
@@ -132,6 +133,59 @@ class UserResponse(BaseModel):
     email: str
 ```
 
+## Logging
+
+This template includes a dual logging system for different use cases:
+
+### Simple Logger (`logger`)
+
+Use for application lifecycle events, debugging, and infrastructure operations:
+
+```python
+from config.logger import logger
+
+logger.info("Application started")
+logger.debug("Loading configuration")
+logger.error("Error occurred", exc_info=True)
+```
+
+### Structured Logger (`structured_logger`)
+
+Use for business events, HTTP requests, and anything requiring production queries:
+
+```python
+from config.logger import structured_logger
+
+# Set persistent context for related logs
+structured_logger.set_context(
+    request_id="abc-123",
+    user_id=456
+)
+
+# Log with additional fields
+structured_logger.info(
+    "Order created",
+    order_id=789,
+    amount=99.99,
+    event_type="order_created"
+)
+
+# Always clear context when done
+structured_logger.clear_context()
+```
+
+### When to Use Each
+
+- **Use `logger`**: Startup/shutdown, config loading, cache operations, debug messages
+- **Use `structured_logger`**: Authentication, CRUD operations, HTTP requests, business events
+
+### Log Files
+
+- Development: `./logs/YYYY-MM-DD/template_api.log`
+- Production: `/var/log/app/logs/YYYY-MM-DD/template_api.log`
+- Daily rotation with automatic folder creation at midnight
+- Thread-safe for Uvicorn workers
+
 ## Middleware
 
 ### Compression Middleware (Enabled by default)
@@ -204,17 +258,23 @@ pip install -e ../repositorio_lib
 
 ```python
 # Configuration (DO NOT use environment variables directly)
-from repositorio_lib.config.settings import db_settings, jwt_settings, app_settings
+from repositorio_lib.config.settings import db_settings, jwt_settings, app_settings, api_settings
 
-# Database
+# Core infrastructure
 from repositorio_lib.core.database import get_async_session
-from repositorio_lib.core.logger import setup_logger
-from repositorio_lib.service.repository import v1Repositorio
+from repositorio_lib.core import setup_logger, log_performance
 
-# Usage example
+# Data access
+from repositorio_lib.service.repository import v1Repository
+
+# Logging (in your template)
+from config.logger import logger, structured_logger
+
+# Usage examples
 db_url = db_settings.get_connection_string(async_mode=True)
 secret_key = jwt_settings.SECRET_KEY
 log_dir = app_settings.get_log_dir()
+rate_limit = api_settings.RATE_LIMIT_REQUESTS
 ```
 
 ## Testing

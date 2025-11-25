@@ -4,15 +4,16 @@ from starlette import status
 from repositorio_lib.schema.result import Result
 from repositorio_lib.core import (
     get_db_context,
+    log_performance,
+)
+from repositorio_lib.utils import (
     get_all_async,
     get_one_by_id_async,
     bulk_create_async,
     bulk_update_async,
-    log_performance,
-    logger,
 )
 from repositorio_lib.schema.model_map import model_map
-from repositorio_lib.config import cache
+from repositorio_lib.config import cache, logger
 
 
 class v1Repository:
@@ -58,7 +59,9 @@ class v1Repository:
         schema = cfg.get_schema(use_relationships)
         rels = cfg.get_rels(use_relationships)
 
-        with log_performance(logger, f"DB Query: get_all({model_name})", threshold_ms=500):
+        with log_performance(
+            logger, f"DB Query: get_all({model_name})", threshold_ms=500
+        ):
             async with get_db_context() as db:
                 result = await get_all_async(db, model, schema, rels)
 

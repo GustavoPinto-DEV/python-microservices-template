@@ -13,6 +13,7 @@ Generic template for web applications with FastAPI and server-side rendering usi
 - ✅ Static files (CSS, JS, images)
 - ✅ HTML forms with validation
 - ✅ User sessions
+- ✅ Dual logging system (simple `logger` + `structured_logger` with context)
 - ✅ MVC architecture
 - ✅ Docker ready
 
@@ -22,7 +23,6 @@ Generic template for web applications with FastAPI and server-side rendering usi
 template_web/
 ├── main.py              # Entry point
 ├── requirements.txt
-├── .env.example
 ├── config/             # Configuration
 ├── controller/         # Business logic
 ├── dependencies/       # Auth and utilities
@@ -51,6 +51,8 @@ template_web/
         ├── ejemplo_bitacora.html.jinja
         └── ejemplo_bitacora_detalle.html.jinja
 ```
+
+**⚠️ NOTE:** This template does NOT have its own `.env.example` file. All environment variables are centrally managed in `../template_repositorio/repositorio_lib/config/.env.example`
 
 ## Installation
 
@@ -383,13 +385,78 @@ docker run -p 8000:8000 \
 
 ```python
 # Import configuration from repositorio_lib
-from repositorio_lib.config.settings import db_settings, jwt_settings, app_settings
+from repositorio_lib.config.settings import db_settings, jwt_settings, app_settings, web_settings
 
-# Use in code
+# Core infrastructure
+from repositorio_lib.core.database import get_async_session
+from repositorio_lib.core import setup_logger, log_performance
+
+# Data access
+from repositorio_lib.service.repository import v1Repository
+
+# Logging (in your template)
+from config.logger import logger, structured_logger
+
+# Usage examples
 db_url = db_settings.get_connection_string(async_mode=True)
 secret_key = jwt_settings.SECRET_KEY
+session_secret = web_settings.SESSION_SECRET_KEY
 log_dir = app_settings.get_log_dir()
 ```
+
+## Logging
+
+This template includes a dual logging system:
+
+### Simple Logger (`logger`)
+
+Use for application lifecycle, debugging, and infrastructure operations:
+
+```python
+from config.logger import logger
+
+logger.info("Application started")
+logger.debug("Loading templates")
+logger.error("Template not found", exc_info=True)
+```
+
+### Structured Logger (`structured_logger`)
+
+Use for user actions, page views, and business events:
+
+```python
+from config.logger import structured_logger
+
+# Log page view with user context
+structured_logger.info(
+    "Page accessed",
+    page="/dashboard",
+    method="GET",
+    username=user.get("username"),
+    event_type="page_view"
+)
+
+# Log authentication events
+structured_logger.info(
+    "User logged in",
+    username=form_data.username,
+    event_type="authentication",
+    action="login_success",
+    status="success"
+)
+```
+
+### When to Use Each
+
+- **Use `logger`**: Startup/shutdown, template rendering, config loading, debug messages
+- **Use `structured_logger`**: Authentication, page views, form submissions, user actions
+
+### Log Files
+
+- Development: `./logs/YYYY-MM-DD/template_web.log`
+- Production: `/var/log/app/logs/YYYY-MM-DD/template_web.log`
+- Daily rotation with automatic folder creation at midnight
+- Thread-safe for Uvicorn workers
 
 ## License
 

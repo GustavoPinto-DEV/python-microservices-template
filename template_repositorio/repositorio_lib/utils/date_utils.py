@@ -7,7 +7,9 @@ Flexible parsing of dates and times from OCR text.
 import re
 from datetime import date, datetime, time
 from typing import Optional
-from repositorio_lib.core import logger
+
+# Direct import to avoid circular dependency
+from repositorio_lib.config import logger
 
 
 def parse_flexible_date(date_str: str) -> Optional[date]:
@@ -169,9 +171,7 @@ def validate_date_age_consistency(
     calculated_age = calculate_age(birth_date)
 
     if calculated_age is None:
-        logger.warning(
-            f"Could not validate consistency - invalid date: {birth_date}"
-        )
+        logger.warning(f"Could not validate consistency - invalid date: {birth_date}")
         return False
 
     is_consistent = abs(calculated_age - age) <= tolerance
@@ -211,6 +211,8 @@ def validate_reasonable_date(
     is_valid = min_year <= date_value.year <= max_year
 
     if not is_valid:
-        logger.warning(f"Date out of range: {date_value} (range: {min_year}-{max_year})")
+        logger.warning(
+            f"Date out of range: {date_value} (range: {min_year}-{max_year})"
+        )
 
     return is_valid

@@ -23,4 +23,4 @@ APScheduler==3.10.4
 watchdog==5.0.3
 
 # Librería interna compartida (ajustar path según tu proyecto)
-# -e ../repositorio
+-e ../repositorio

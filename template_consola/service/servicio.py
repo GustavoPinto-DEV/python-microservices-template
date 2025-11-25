@@ -9,8 +9,8 @@ import asyncio
 from datetime import datetime
 import os
 
-# Centralized logger
-from config.logger import logger
+# Centralized loggers
+from config.logger import logger, structured_logger
 
 # Processes
 from processes.ejemplo_proceso import execute_example_process
@@ -97,8 +97,26 @@ class Service:
                 logger.info(f"Starting cycle #{cycle} - {datetime.now()}")
                 logger.info(f"{'='*60}")
 
+                # Set context for this cycle execution
+                cycle_start = datetime.now()
+                structured_logger.set_context(
+                    cycle_number=cycle,
+                    execution_date=cycle_start.isoformat(),
+                    service="template_consola"
+                )
+
                 # Execute process cycle
                 await self.execute_cycle()
+
+                # Log cycle completion with metrics
+                cycle_duration = (datetime.now() - cycle_start).total_seconds()
+                structured_logger.info(
+                    "Cycle completed successfully",
+                    cycle_number=cycle,
+                    duration_seconds=cycle_duration,
+                    event_type="cycle_completed"
+                )
+                structured_logger.clear_context()
 
                 logger.info(f"✅ Cycle #{cycle} completed successfully")
 
@@ -165,12 +183,29 @@ class Service:
 
             # Check results
             errors = [r for r in results if isinstance(r, Exception)]
+            successful_count = len(results) - len(errors)
+
             if errors:
                 logger.warning(f"⚠️ {len(errors)} process(es) failed")
                 for error in errors:
                     logger.error(f"   - {error}")
+
+                # Log with structured logger for monitoring
+                structured_logger.warning(
+                    "Parallel processes completed with errors",
+                    total_processes=len(results),
+                    successful=successful_count,
+                    failed=len(errors),
+                    event_type="parallel_execution"
+                )
             else:
                 logger.info("✅ All parallel processes completed successfully")
+                structured_logger.info(
+                    "All parallel processes completed",
+                    total_processes=len(results),
+                    successful=successful_count,
+                    event_type="parallel_execution"
+                )
 
             # ====================================================================
             # OPTION 3: COMBINATION (some parallel, others sequential)
@@ -200,10 +235,34 @@ class Service:
             function: Async function to execute
             name: Descriptive process name
         """
+        process_start = datetime.now()
+
         for attempt in range(1, self.max_retries + 1):
             try:
                 logger.info(f"▶️ Executing: {name} (attempt {attempt}/{self.max_retries})")
+
+                # Log process start with structured logger
+                structured_logger.info(
+                    "Process started",
+                    process_name=name,
+                    attempt=attempt,
+                    max_attempts=self.max_retries,
+                    event_type="process_start"
+                )
+
                 await function()
+
+                # Log successful completion with metrics
+                duration = (datetime.now() - process_start).total_seconds()
+                structured_logger.info(
+                    "Process completed successfully",
+                    process_name=name,
+                    attempt=attempt,
+                    duration_seconds=duration,
+                    status="success",
+                    event_type="process_completed"
+                )
+
                 logger.info(f"✅ {name} completed successfully")
                 return
 
@@ -213,6 +272,17 @@ class Service:
                     exc_info=True
                 )
 
+                # Log failure with structured logger
+                structured_logger.error(
+                    "Process execution failed",
+                    process_name=name,
+                    attempt=attempt,
+                    max_attempts=self.max_retries,
+                    error=str(e),
+                    status="failed",
+                    event_type="process_failed"
+                )
+
                 if attempt < self.max_retries:
                     # Exponential backoff: 5s, 10s, 20s
                     delay = 5 * (2 ** (attempt - 1))
@@ -220,6 +290,18 @@ class Service:
                     await asyncio.sleep(delay)
                 else:
                     logger.error(f"❌ {name} failed after {self.max_retries} attempts")
+
+                    # Log final failure
+                    duration = (datetime.now() - process_start).total_seconds()
+                    structured_logger.error(
+                        "Process failed after all retries",
+                        process_name=name,
+                        total_attempts=self.max_retries,
+                        duration_seconds=duration,
+                        error=str(e),
+                        status="failed_permanently",
+                        event_type="process_failed_permanently"
+                    )
                     raise
 
 

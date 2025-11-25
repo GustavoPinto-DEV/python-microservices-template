@@ -9,13 +9,13 @@ Complete template for creating REST APIs with JWT authentication, response compr
 
 **Features:**
 - ✅ FastAPI with automatic documentation (Swagger/ReDoc)
-- ✅ JWT authentication
-- ✅ Compression middleware (gzip)
+- ✅ JWT authentication with token-based security
+- ✅ Compression middleware (gzip for responses > 500 bytes)
 - ✅ Optional IP-based rate limiting
-- ✅ Centralized exception handling
-- ✅ Structured logging
-- ✅ Asynchronous PostgreSQL connection (optional)
-- ✅ Router → Controller → Repository architecture
+- ✅ Centralized exception handling with detailed error responses
+- ✅ Dual logging system (simple `logger` + `structured_logger`)
+- ✅ Asynchronous PostgreSQL connection with pooling
+- ✅ Clean Router → Controller → Repository architecture
 
 **Usage:**
 ```bash
@@ -93,14 +93,20 @@ uvicorn main:app --port 8000 --reload
 Template for creating an internal reusable library that centralizes data access, configuration, and utilities.
 
 **Features:**
-- ✅ Asynchronous PostgreSQL connection with optimized pool
-- ✅ Centralized logger with daily rotation
-- ✅ Centralized settings with Pydantic
-- ✅ Auto-generable SQLAlchemy models
-- ✅ Auto-generable Pydantic schemas
-- ✅ CRUD helpers
-- ✅ Shared utilities
-- ✅ TTL-based cache system
+- ✅ Asynchronous PostgreSQL connection with optimized connection pooling
+- ✅ Dual logging system (simple `logger` + `structured_logger` with context)
+- ✅ Daily log rotation with automatic folder creation at midnight
+- ✅ Performance monitoring utilities (`log_performance` context manager)
+- ✅ Centralized configuration (SINGLE `.env` for entire ecosystem)
+- ✅ Auto-generable SQLAlchemy models (via sqlacodegen)
+- ✅ Auto-generable Pydantic schemas (base + complete with relationships)
+- ✅ Generic async CRUD helpers (moved to `utils/`)
+- ✅ Retry utilities with exponential backoff
+- ✅ Email notifications via SMTP
+- ✅ Date/time parsing and validation
+- ✅ Chilean RUT utilities (validation, formatting)
+- ✅ Encryption and password hashing (bcrypt)
+- ✅ TTL-based in-memory cache system
 
 **Usage:**
 ```bash
@@ -408,14 +414,25 @@ project/
 ### Import Pattern
 
 ```python
-# Shared library (if applicable)
-from your_data_layer.core.database import get_async_session
-from your_data_layer.core.logger import setup_logger
-from your_data_layer.service.repository import v1Repository
-from your_data_layer.utils import retry_with_backoff
+# Shared library configuration
+from repositorio_lib.config.settings import db_settings, jwt_settings, app_settings
 
-# Project-specific
-from dependencies.util import my_utility
+# Core infrastructure
+from repositorio_lib.core.database import get_async_session
+from repositorio_lib.core import setup_logger, log_performance
+
+# Data access
+from repositorio_lib.service.repository import v1Repository
+
+# Utilities
+from repositorio_lib.utils import (
+    retry_with_backoff,
+    get_all_async,
+    send_email,
+)
+
+# Project-specific (template)
+from config.logger import logger, structured_logger
 from dependencies.auth import get_current_user
 ```
 
